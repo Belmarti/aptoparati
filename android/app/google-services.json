@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "795525687269",
+    "project_id": "aptoparati-782b9",
+    "storage_bucket": "aptoparati-782b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795525687269:android:668f0c5047bb690029710c",
+        "android_client_info": {
+          "package_name": "com.example.aptoparati"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "795525687269-3ggo9422uuo3b5gdabci91ni06fdnseu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZqR0HFffRmzwCJFL_coHAQ3NDcZc4t8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "795525687269-3ggo9422uuo3b5gdabci91ni06fdnseu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
