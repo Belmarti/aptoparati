@@ -3,20 +3,31 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../widgets/camera_viewfinder.dart';
 import '../widgets/dashboard_actions.dart';
-import 'login_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+import 'user_config_screen.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    UserService.instance.clear();
-    if (context.mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
-    }
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  void _onBarcodeScanned(String code) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Código Detectado'),
+        content: Text('Código: "$code" leído'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -44,9 +55,9 @@ class HomeScreen extends StatelessWidget {
         children: [
           // 1. Camera / Scanner Area
           // It takes up the space above the bottom sheet
-          const Positioned.fill(
+          Positioned.fill(
             bottom: 100, // Leave space for the curved overlap
-            child: CameraViewfinder(),
+            child: CameraViewfinder(onScan: _onBarcodeScanned),
           ),
 
           // 2. Top Header (Floating)
@@ -83,29 +94,9 @@ class HomeScreen extends StatelessWidget {
                     // User Avatar
                     GestureDetector(
                       onTap: () {
-                        // TODO: Navigate to Profile/Settings
-                        // For now, simple sheet to logout
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (c) => Container(
-                            height: 150,
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  'Sesión de ${user?.email}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Spacer(),
-                                ElevatedButton(
-                                  onPressed: () => _logout(context),
-                                  child: const Text('Cerrar Sesión'),
-                                ),
-                              ],
-                            ),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const UserConfigScreen(),
                           ),
                         );
                       },
@@ -162,9 +153,12 @@ class HomeScreen extends StatelessWidget {
               },
               onScanTap: () {
                 // Trigger Scan
+                // Since scanner is always active in background for this design,
+                // this button might just focus it or be redundant based on UI,
+                // but let's keep it as "Feedback" or "Reset Focus".
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Escanear: Activando cámara...'),
+                    content: Text('La cámara ya está activa para escanear'),
                   ),
                 );
               },
