@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../data/health_profile_data.dart';
 import '../services/user_service.dart';
-import '../widgets/action_button.dart'; // Assuming this exists based on intolerances_screen
-import 'login_screen.dart'; // For logout navigation if needed
+import '../widgets/action_button.dart';
 
 class UserConfigScreen extends StatefulWidget {
   const UserConfigScreen({super.key});
@@ -14,38 +14,14 @@ class UserConfigScreen extends StatefulWidget {
 class _UserConfigScreenState extends State<UserConfigScreen> {
   bool _isLoading = false;
 
-  // Health Profile State
-  bool _isDiabetic = false;
-  bool _isCeliac = false;
-
-  // Allergens Selection
-  final Map<String, bool> _allergens = {
-    'Frutos secos': false,
-    'Lactosa': false,
-    'Marisco': false,
-    'Huevo': false,
-    'Soja': false,
-    'Pescado': false,
+  // Estado de cada condición médica: clave Firestore → activado/desactivado
+  late final Map<String, bool> _conditions = {
+    for (final c in kHealthConditions) c.key: false,
   };
 
-  // Mapping display names to backend keys
-  final Map<String, String> _allergenKeys = {
-    'Frutos secos': 'nuts',
-    'Lactosa': 'lactose',
-    'Marisco': 'shellfish',
-    'Huevo': 'egg',
-    'Soja': 'soy',
-    'Pescado': 'fish',
-  };
-
-  // Inverse mapping for loading data
-  final Map<String, String> _backendKeysToDisplay = {
-    'nuts': 'Frutos secos',
-    'lactose': 'Lactosa',
-    'shellfish': 'Marisco',
-    'egg': 'Huevo',
-    'soy': 'Soja',
-    'fish': 'Pescado',
+  // Estado de cada alérgeno: clave Firestore → seleccionado/no seleccionado
+  late final Map<String, bool> _allergenSelected = {
+    for (final a in kAllergens) a.key: false,
   };
 
   @override
@@ -54,52 +30,49 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
     _loadUserData();
   }
 
+  /// Carga el perfil de salud desde la caché de UserService y pre-rellena el estado.
   void _loadUserData() {
     final userData = UserService.instance.currentUserData;
-    if (userData != null && userData['health_profile'] != null) {
-      final health = userData['health_profile'];
-      setState(() {
-        _isDiabetic = health['is_diabetic'] ?? false;
-        _isCeliac = health['has_celiac_disease'] ?? false;
+    if (userData == null || userData['health_profile'] == null) return;
 
-        final List<dynamic> savedAllergens = health['allergens'] ?? [];
-        for (var backendKey in savedAllergens) {
-          final displayKey = _backendKeysToDisplay[backendKey];
-          if (displayKey != null && _allergens.containsKey(displayKey)) {
-            _allergens[displayKey] = true;
-          }
+    final health = userData['health_profile'];
+    setState(() {
+      // Cargar condiciones médicas
+      for (final condition in kHealthConditions) {
+        _conditions[condition.key] = health[condition.key] ?? false;
+      }
+
+      // Marcar los alérgenos que el usuario tiene guardados en Firestore
+      final List<dynamic> savedAllergens = health['allergens'] ?? [];
+      for (final key in savedAllergens) {
+        if (_allergenSelected.containsKey(key)) {
+          _allergenSelected[key] = true;
         }
-      });
-    }
+      }
+    });
   }
 
+  /// Guarda los cambios del perfil de salud en Firestore a través de UserService.
+  /// Preserva el campo custom_restrictions para no sobreescribirlo.
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final selectedAllergens = _allergens.entries
-          .where((entry) => entry.value)
-          .map((entry) => _allergenKeys[entry.key]!)
+      // Filtrar solo los alérgenos seleccionados y obtener sus claves Firestore
+      final selectedAllergens = kAllergens
+          .where((a) => _allergenSelected[a.key] == true)
+          .map((a) => a.key)
           .toList();
 
       final healthProfileData = {
-        'is_diabetic': _isDiabetic,
-        'has_celiac_disease': _isCeliac,
+        for (final c in kHealthConditions) c.key: _conditions[c.key] ?? false,
         'allergens': selectedAllergens,
-        // Preserve other fields if any, but currently we are overwriting the map in UserService
-        // Ideally we should merge, but UserService.updateHealthProfile implementation
-        // suggests we are passing the full map or it updates the field.
-        // Let's check UserService implementation detail again if needed.
-        // Based on previous read, it does: .update({'health_profile': healthProfileData})
-        // So we need to be careful not to lose 'custom_restrictions' if it exists.
-        // Let's try to preserve it from current data.
+        // Preservar custom_restrictions para no perder datos existentes
         'custom_restrictions':
-            UserService
-                .instance
-                .currentUserData?['health_profile']?['custom_restrictions'] ??
-            [],
+            UserService.instance.currentUserData?['health_profile']
+                ?['custom_restrictions'] ?? [],
       };
 
       await UserService.instance.updateHealthProfile(
@@ -155,26 +128,20 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Diabetic Switch
-                _buildSwitchTile(
-                  title: 'Soy diabético',
-                  value: _isDiabetic,
-                  onChanged: (val) => setState(() => _isDiabetic = val),
-                  icon: Icons.monitor_heart_outlined,
-                ),
+                // Switch por cada condición médica definida en kHealthConditions
+                ...kHealthConditions.map((condition) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildSwitchTile(
+                    title: condition.label,
+                    subtitle: condition.subtitle,
+                    value: _conditions[condition.key] ?? false,
+                    onChanged: (val) =>
+                        setState(() => _conditions[condition.key] = val),
+                    icon: condition.icon,
+                  ),
+                )),
 
                 const SizedBox(height: 16),
-
-                // Celiac Switch
-                _buildSwitchTile(
-                  title: 'Soy celíaco',
-                  subtitle: 'Evitar gluten estrictamente',
-                  value: _isCeliac,
-                  onChanged: (val) => setState(() => _isCeliac = val),
-                  icon: Icons.no_meals_outlined,
-                ),
-
-                const SizedBox(height: 32),
 
                 Text(
                   'Alergias e Intolerancias',
@@ -186,25 +153,23 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Chips seleccionables, uno por cada alérgeno definido en kAllergens
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _allergens.keys.map((key) {
+                  children: kAllergens.map((allergen) {
+                    final selected = _allergenSelected[allergen.key] ?? false;
                     return FilterChip(
-                      label: Text(key),
-                      selected: _allergens[key]!,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          _allergens[key] = selected;
-                        });
-                      },
-                      selectedColor: primaryColor.withOpacity(0.2),
+                      label: Text(allergen.label),
+                      selected: selected,
+                      onSelected: (val) =>
+                          setState(() => _allergenSelected[allergen.key] = val),
+                      selectedColor: primaryColor.withValues(alpha: 0.2),
                       checkmarkColor: primaryColor,
                       labelStyle: TextStyle(
-                        color: _allergens[key]! ? primaryColor : Colors.black87,
-                        fontWeight: _allergens[key]!
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        color: selected ? primaryColor : Colors.black87,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     );
                   }).toList(),
@@ -218,6 +183,8 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
     );
   }
 
+  /// Construye un tile con switch estilizado para condiciones médicas.
+  /// Cambia el borde y la sombra según si está activado o no.
   Widget _buildSwitchTile({
     required String title,
     String? subtitle,
@@ -238,7 +205,7 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
         boxShadow: value
             ? [
                 BoxShadow(
-                  color: colorScheme.primary.withOpacity(0.1),
+                  color: colorScheme.primary.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -257,7 +224,7 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
         value: value,
         onChanged: onChanged,
         secondary: Icon(icon, color: value ? colorScheme.primary : Colors.grey),
-        activeColor: colorScheme.primary,
+        activeThumbColor: colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

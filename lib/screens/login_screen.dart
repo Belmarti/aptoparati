@@ -26,6 +26,141 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Muestra un diálogo para solicitar el restablecimiento de contraseña.
+  /// Pre-rellena el campo con el email introducido en el formulario principal.
+  /// Invoca [FirebaseAuth.sendPasswordResetEmail] y notifica al usuario mediante SnackBar.
+  Future<void> _showPasswordResetDialog() async {
+    // Pre-rellenar con el email del formulario principal si ya fue introducido
+    final emailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+
+    // Capturar el ScaffoldMessenger antes del async gap para evitar usar
+    // un contexto inválido tras cerrar el diálogo
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isSending = false;
+
+        return StatefulBuilder(
+          builder: (builderContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Restablecer contraseña'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Te enviaremos un correo para restablecer tu contraseña.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo electrónico',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                // Cancelar deshabilitado durante el envío para evitar double-pop
+                TextButton(
+                  onPressed: isSending
+                      ? null
+                      : () {
+                          // FocusManager no depende del contexto del diálogo
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.of(dialogContext).pop();
+                        },
+                  child: const Text('Cancelar'),
+                ),
+                // Mostrar indicador de carga mientras se envía la petición a Firebase
+                isSending
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : TextButton(
+                        onPressed: () async {
+                          final email = emailController.text.trim();
+
+                          // Validación: campo vacío — informar al usuario
+                          if (email.isEmpty) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Introduce tu correo electrónico.'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          setDialogState(() => isSending = true);
+
+                          try {
+                            // Firebase envía el correo de restablecimiento de forma automática
+                            await FirebaseAuth.instance
+                                .sendPasswordResetEmail(email: email);
+
+                            // Verificar que el diálogo sigue abierto antes de cerrar y notificar.
+                            // Si el usuario cerró el diálogo durante el envío, no hacer nada.
+                            if (dialogContext.mounted) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              Navigator.of(dialogContext).pop();
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Correo de restablecimiento enviado. Revisa tu bandeja de entrada.',
+                                  ),
+                                ),
+                              );
+                            }
+                          } on FirebaseAuthException catch (e) {
+                            // Mapeo de códigos de error de Firebase Auth a mensajes en español
+                            String message = 'Error al enviar el correo';
+                            if (e.code == 'user-not-found') {
+                              message = 'No existe una cuenta con ese correo.';
+                            } else if (e.code == 'invalid-email') {
+                              message = 'El correo no es válido.';
+                            }
+                            // Restaurar botón en error — el diálogo queda abierto para reintentar
+                            if (dialogContext.mounted) {
+                              setDialogState(() => isSending = false);
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(content: Text(message)),
+                              );
+                            }
+                          } catch (_) {
+                            // Error inesperado — restaurar botón y mostrar mensaje genérico
+                            if (dialogContext.mounted) {
+                              setDialogState(() => isSending = false);
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Error inesperado. Inténtalo de nuevo.'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Enviar'),
+                      ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    // Liberar el controlador temporal del diálogo
+    emailController.dispose();
+  }
+
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -140,9 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextActionButton(
                     text: '¿Olvidaste tu contraseña?',
-                    onPressed: () {
-                      // Import recovery flow
-                    },
+                    onPressed: _showPasswordResetDialog,
                   ),
                 ),
 

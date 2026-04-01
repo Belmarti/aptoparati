@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../data/health_profile_data.dart';
 import '../widgets/action_button.dart';
 import 'login_screen.dart';
 
+/// Pantalla del paso 2 del registro.
+/// Recibe los datos personales del paso 1 (nombre, email, contraseña) y
+/// permite al usuario configurar su perfil de salud antes de crear la cuenta.
 class IntolerancesScreen extends StatefulWidget {
   final String name;
   final String email;
@@ -21,37 +25,28 @@ class IntolerancesScreen extends StatefulWidget {
 }
 
 class _IntolerancesScreenState extends State<IntolerancesScreen> {
+  // Controla el indicador de carga durante el registro
   bool _isLoading = false;
 
-  // Health Profile State
-  bool _isDiabetic = false;
-  bool _isCeliac = false; // "has_celiac_disease"
-
-  // Allergens Selection
-  final Map<String, bool> _allergens = {
-    'Frutos secos': false, // nuts
-    'Lactosa': false, // lactose
-    'Marisco': false, // shellfish
-    'Huevo': false, // egg
-    'Soja': false, // soy
-    'Pescado': false, // fish
+  // Estado de cada condición médica: clave Firestore → activado/desactivado
+  late final Map<String, bool> _conditions = {
+    for (final c in kHealthConditions) c.key: false,
   };
 
-  // Mapping display names to backend keys
-  final Map<String, String> _allergenKeys = {
-    'Frutos secos': 'nuts',
-    'Lactosa': 'lactose',
-    'Marisco': 'shellfish',
-    'Huevo': 'egg',
-    'Soja': 'soy',
-    'Pescado': 'fish',
+  // Estado de cada alérgeno: clave Firestore → seleccionado/no seleccionado
+  late final Map<String, bool> _allergenSelected = {
+    for (final a in kAllergens) a.key: false,
   };
 
+  /// Ejecuta el proceso completo de registro en dos pasos:
+  /// 1. Crea el usuario en Firebase Auth con email y contraseña.
+  /// 2. Guarda el documento del usuario en Firestore con su perfil de salud.
+  /// Si todo va bien, redirige al LoginScreen y limpia la pila de navegación.
   Future<void> _register() async {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Create Auth User
+      // Paso 1: crear la cuenta en Firebase Auth
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: widget.email,
@@ -61,12 +56,13 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
       final uid = userCredential.user!.uid;
       final now = Timestamp.now();
 
-      // 2. Prepare Data for Firestore
-      final selectedAllergens = _allergens.entries
-          .where((entry) => entry.value)
-          .map((entry) => _allergenKeys[entry.key]!)
+      // Filtrar solo los alérgenos que el usuario marcó como activos
+      final selectedAllergens = kAllergens
+          .where((a) => _allergenSelected[a.key] == true)
+          .map((a) => a.key)
           .toList();
 
+      // Estructura del documento de usuario según el modelo de datos de Firestore
       final userData = {
         "personal_info": {
           "email": widget.email,
@@ -76,33 +72,27 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
         },
         "subscription": {
           "status": "free",
-          "plan_id": "basic", // Default to basic
+          "plan_id": "basic",
           "expiry_date": null,
         },
         "health_profile": {
-          "is_diabetic": _isDiabetic,
-          "has_celiac_disease": _isCeliac,
+          "is_diabetic": _conditions['is_diabetic'] ?? false,
+          "has_celiac_disease": _conditions['has_celiac_disease'] ?? false,
           "allergens": selectedAllergens,
           "custom_restrictions": [],
         },
         "stats": {"scans_today": 0, "last_scan_date": now},
       };
 
-      // 3. Save to Firestore
+      // Paso 2: guardar el perfil completo en Firestore bajo el UID del usuario
       await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .set(userData);
 
       if (mounted) {
-        // Navigation to Home or Login (Currently Login, usually Home)
-        // For now, let's pop to root (Login) and show success, or navigate to Home if we had one ready.
-        // Since main.dart points to LoginScreen, and we are logged in, we might want to navigate to a Home screen.
-        // But for this task, I will navigate to LoginScreen (clear stack) to simulate "Log in now" or just go to Home?
-        // Let's assume we go back to LoginScreen for now as flow confirmation,
-        // OR effectively since we are authenticated, we could just stay logged in.
-        // Let's go to LoginScreen for simplicity of the flow request "Acceda desde el login".
-
+        // Navegar al LoginScreen eliminando toda la pila de navegación anterior,
+        // para que el usuario no pueda volver atrás con el botón de retroceso
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
           (Route<dynamic> route) => false,
@@ -113,14 +103,21 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+      // Error específico de Firebase Auth (email ya en uso, contraseña débil, etc.)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.message}')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al crear perfil: $e')));
+      // Error genérico, por ejemplo fallo al escribir en Firestore
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al crear perfil: $e')),
+        );
+      }
     } finally {
+      // Siempre ocultar el indicador de carga al terminar, con éxito o error
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -136,6 +133,7 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
         elevation: 0,
         foregroundColor: Colors.black,
       ),
+      // Mientras se ejecuta el registro, mostrar spinner en lugar del formulario
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -156,26 +154,20 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Diabetic Switch
-                _buildSwitchTile(
-                  title: 'Soy diabético',
-                  value: _isDiabetic,
-                  onChanged: (val) => setState(() => _isDiabetic = val),
-                  icon: Icons.monitor_heart_outlined,
-                ),
+                // Switch por cada condición médica definida en kHealthConditions
+                ...kHealthConditions.map((condition) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildSwitchTile(
+                    title: condition.label,
+                    subtitle: condition.subtitle,
+                    value: _conditions[condition.key] ?? false,
+                    onChanged: (val) =>
+                        setState(() => _conditions[condition.key] = val),
+                    icon: condition.icon,
+                  ),
+                )),
 
                 const SizedBox(height: 16),
-
-                // Celiac Switch
-                _buildSwitchTile(
-                  title: 'Soy celíaco',
-                  subtitle: 'Evitar gluten estrictamente',
-                  value: _isCeliac,
-                  onChanged: (val) => setState(() => _isCeliac = val),
-                  icon: Icons.no_meals_outlined,
-                ),
-
-                const SizedBox(height: 32),
 
                 Text(
                   'Alergias e Intolerancias',
@@ -187,25 +179,23 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Chips seleccionables, uno por cada alérgeno definido en kAllergens
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _allergens.keys.map((key) {
+                  children: kAllergens.map((allergen) {
+                    final selected = _allergenSelected[allergen.key] ?? false;
                     return FilterChip(
-                      label: Text(key),
-                      selected: _allergens[key]!,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          _allergens[key] = selected;
-                        });
-                      },
-                      selectedColor: primaryColor.withOpacity(0.2),
+                      label: Text(allergen.label),
+                      selected: selected,
+                      onSelected: (val) =>
+                          setState(() => _allergenSelected[allergen.key] = val),
+                      selectedColor: primaryColor.withValues(alpha: 0.2),
                       checkmarkColor: primaryColor,
                       labelStyle: TextStyle(
-                        color: _allergens[key]! ? primaryColor : Colors.black87,
-                        fontWeight: _allergens[key]!
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        color: selected ? primaryColor : Colors.black87,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     );
                   }).toList(),
@@ -213,12 +203,16 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
 
                 const SizedBox(height: 48),
 
+                // Botón que dispara el proceso de registro completo
                 ActionButton(text: 'Finalizar Registro', onPressed: _register),
               ],
             ),
     );
   }
 
+  /// Construye un tile con switch estilizado para condiciones médicas.
+  /// Cambia el borde y la sombra según si está activado o no,
+  /// para dar feedback visual claro al usuario.
   Widget _buildSwitchTile({
     required String title,
     String? subtitle,
@@ -232,14 +226,16 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        // Borde verde y más grueso cuando está activado, gris y fino cuando no
         border: Border.all(
           color: value ? colorScheme.primary : Colors.grey.shade300,
           width: value ? 2.0 : 1.0,
         ),
+        // Sombra verde suave solo cuando está activado
         boxShadow: value
             ? [
                 BoxShadow(
-                  color: colorScheme.primary.withOpacity(0.1),
+                  color: colorScheme.primary.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -258,7 +254,7 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
         value: value,
         onChanged: onChanged,
         secondary: Icon(icon, color: value ? colorScheme.primary : Colors.grey),
-        activeColor: colorScheme.primary,
+        activeThumbColor: colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

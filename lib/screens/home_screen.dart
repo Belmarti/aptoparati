@@ -6,6 +6,9 @@ import '../widgets/dashboard_actions.dart';
 
 import 'user_config_screen.dart';
 
+/// Pantalla principal de la aplicación tras el login.
+/// Muestra la cámara de escaneo a pantalla completa con un header flotante
+/// y un panel de acciones en la parte inferior.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -14,6 +17,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+  /// Callback que recibe el código de barras detectado por [CameraViewfinder].
+  /// Por ahora muestra un AlertDialog básico — pendiente de integrar
+  /// con la base de datos de productos.
   void _onBarcodeScanned(String code) {
     showDialog(
       context: context,
@@ -35,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     final userData = UserService.instance.currentUserData;
 
-    // Get user name or initials
+    // Obtener nombre del usuario desde la caché de UserService
     String displayName = 'Usuario';
     String initials = 'U';
 
@@ -43,24 +50,26 @@ class _HomeScreenState extends State<HomeScreen> {
       displayName = userData['personal_info']['name'] ?? 'Usuario';
     }
 
+    // Calcular inicial para el avatar: primera letra del nombre,
+    // o primera letra del email como fallback
     if (displayName != 'Usuario' && displayName.isNotEmpty) {
       initials = displayName[0].toUpperCase();
     } else if (user?.email?.isNotEmpty ?? false) {
       initials = user!.email![0].toUpperCase();
     }
 
+    // Layout en Stack: cámara de fondo, header flotante encima, panel inferior
     return Scaffold(
-      backgroundColor: Colors.white, // Or a very light grey
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Camera / Scanner Area
-          // It takes up the space above the bottom sheet
+          // 1. Área de cámara — ocupa todo el espacio excepto el hueco del panel inferior
           Positioned.fill(
-            bottom: 100, // Leave space for the curved overlap
+            bottom: 100,
             child: CameraViewfinder(onScan: _onBarcodeScanned),
           ),
 
-          // 2. Top Header (Floating)
+          // 2. Header flotante sobre la cámara con saludo y avatar del usuario
           Positioned(
             top: 0,
             left: 0,
@@ -74,13 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Greeting / Logo
+                    // Saludo con nombre del usuario
                     Text(
                       'Hola, $displayName',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        // Sombra para legibilidad sobre la imagen de cámara
                         shadows: [
                           Shadow(
                             color: Colors.black45,
@@ -91,7 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // User Avatar
+                    // Avatar circular con la inicial del usuario.
+                    // Al pulsar navega a UserConfigScreen.
                     GestureDetector(
                       onTap: () {
                         Navigator.of(context).push(
@@ -133,29 +144,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 3. Bottom Actions (Overlapping)
+          // 3. Panel de acciones inferior con Buscar, Escanear e Historial
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: DashboardActions(
               onSearchTap: () {
-                // Navigate to search
+                // Pendiente: navegar a pantalla de búsqueda
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Buscador: Próximamente')),
                 );
               },
               onHistoryTap: () {
-                // Navigate to history
+                // Pendiente: navegar a pantalla de historial de escaneos
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Historial: Próximamente')),
                 );
               },
               onScanTap: () {
-                // Trigger Scan
-                // Since scanner is always active in background for this design,
-                // this button might just focus it or be redundant based on UI,
-                // but let's keep it as "Feedback" or "Reset Focus".
+                // La cámara ya está activa continuamente — este botón
+                // sirve de recordatorio visual al usuario
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('La cámara ya está activa para escanear'),
