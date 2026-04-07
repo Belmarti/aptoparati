@@ -588,7 +588,12 @@ class _ListaMotivos extends StatelessWidget {
                 const Icon(Icons.warning_amber_rounded,
                     size: 16, color: Color(0xFFE53935)),
                 const SizedBox(width: 8),
-                Text(m, style: const TextStyle(fontSize: 14)),
+                Expanded(
+                  child: Text(m,
+                    style: const TextStyle(fontSize: 14),
+                    softWrap: true,
+                  ),
+                ),
               ],
             ),
           ),

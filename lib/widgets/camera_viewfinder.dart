@@ -4,40 +4,33 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 class CameraViewfinder extends StatefulWidget {
   final void Function(String)? onScan;
 
-  const CameraViewfinder({super.key, this.onScan});
+  /// Controlador externo — permite pausar/reanudar la cámara desde el padre.
+  final MobileScannerController controller;
+
+  const CameraViewfinder({
+    super.key,
+    this.onScan,
+    required this.controller,
+  });
 
   @override
   State<CameraViewfinder> createState() => _CameraViewfinderState();
 }
 
 class _CameraViewfinderState extends State<CameraViewfinder> {
-  final MobileScannerController controller = MobileScannerController();
   bool _isScanning = true;
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
 
   void _handleBarcode(BarcodeCapture capture) {
     if (!_isScanning) return;
 
-    final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
+    for (final barcode in capture.barcodes) {
       if (barcode.rawValue != null) {
-        _isScanning = false; // Pause scanning
+        _isScanning = false;
         widget.onScan?.call(barcode.rawValue!);
-
-        // Resume scanning after a delay or when handled
-        // For now, let's just create a small delay to avoid multiple triggers
-        // if the user stays on the code.
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() => _isScanning = true);
-          }
+          if (mounted) setState(() => _isScanning = true);
         });
-        break; // Process only the first barcode
+        break;
       }
     }
   }
@@ -45,46 +38,48 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
   @override
   Widget build(BuildContext context) {
     return Stack(
-        alignment: Alignment.center,
-        children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _handleBarcode,
-            fit: BoxFit.cover,
-          ),
+      alignment: Alignment.center,
+      children: [
+        MobileScanner(
+          controller: widget.controller,
+          onDetect: _handleBarcode,
+          fit: BoxFit.cover,
+        ),
 
-          // Overlay for scanner
-          Container(
-            decoration: BoxDecoration(color: Colors.black.withOpacity(0.3)),
+        // Overlay semitransparente
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
           ),
+        ),
 
-          // Focus Frame
-          Container(
-            width: 280,
-            height: 280,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.8),
-                width: 2,
-              ),
+        // Marco de enfoque
+        Container(
+          width: 280,
+          height: 280,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.8),
+              width: 2,
             ),
           ),
+        ),
 
-          // Directions
-          Positioned(
-            bottom: 100,
-            child: Text(
-              'Escanea el código de barras',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-              ),
+        // Instrucción
+        Positioned(
+          bottom: 100,
+          child: Text(
+            'Escanea el código de barras',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
             ),
           ),
-        ],
+        ),
+      ],
     );
   }
 }

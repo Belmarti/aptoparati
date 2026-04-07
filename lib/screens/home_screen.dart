@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/user_service.dart';
 import '../widgets/camera_viewfinder.dart';
 import '../widgets/dashboard_actions.dart';
@@ -35,16 +36,25 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Producto recuperado de OFF tras el último escaneo exitoso.
   Product? _lastProduct;
 
-  /// true mientras se consulta la API (muestra el spinner).
+  /// true mientras se consulta la API.
   bool _isFetchingProduct = false;
 
   /// true mientras la card de resultado está abierta (bloquea nuevos escaneos).
   bool _cardVisible = false;
 
+  /// Controlador de la cámara — se para al abrir la card y se reanuda al cerrarla.
+  final MobileScannerController _cameraController = MobileScannerController();
+
   @override
   void initState() {
     super.initState();
     setupOFF();
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    super.dispose();
   }
 
   /// Callback que recibe el código de barras detectado por [CameraViewfinder].
@@ -69,11 +79,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (result.product != null) {
         setState(() {
           _lastProduct = result.product;
-          _isFetchingProduct = false; // ocultar spinner antes de mostrar card
+          _isFetchingProduct = false;
           _cardVisible = true;
         });
+        await _cameraController.pause();  // congela el frame, detiene escaneo
         await _mostrarResultadoProducto(result.product!);
-        if (mounted) setState(() => _cardVisible = false);
+        if (mounted) {
+          setState(() => _cardVisible = false);
+          await _cameraController.start(); // reanuda al cerrar la card
+        }
       } else {
         if (result.result?.id == ProductResultV3.resultProductNotFound) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -135,7 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: CameraViewfinder(onScan: _onBarcodeScanned),
+                  child: CameraViewfinder(
+                    onScan: _onBarcodeScanned,
+                    controller: _cameraController,
+                  ),
                 ),
 
                 // Header flotante con saludo y avatar del usuario
