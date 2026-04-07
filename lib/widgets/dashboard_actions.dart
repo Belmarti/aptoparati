@@ -15,18 +15,9 @@ class DashboardActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        40,
-      ), // Bottom padding for safe area
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
@@ -48,23 +39,23 @@ class DashboardActions extends StatelessWidget {
           GestureDetector(
             onTap: onScanTap,
             child: Container(
-              width: 72,
-              height: 72,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).primaryColor.withOpacity(0.4),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
               child: const Icon(
-                Icons.qr_code_scanner_rounded,
+                Icons.barcode_reader,
                 color: Colors.white,
-                size: 32,
+                size: 26,
               ),
             ),
           ),
@@ -99,14 +90,14 @@ class _ActionButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.grey[800], size: 24),
+            child: Icon(icon, color: Colors.grey[800], size: 22),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           Text(
             label,
             style: TextStyle(

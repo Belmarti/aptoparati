@@ -44,12 +44,7 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-      child: Stack(
+    return Stack(
         alignment: Alignment.center,
         children: [
           MobileScanner(
@@ -90,7 +85,6 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
             ),
           ),
         ],
-      ),
     );
   }
 }

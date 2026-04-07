@@ -3,12 +3,26 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../widgets/camera_viewfinder.dart';
 import '../widgets/dashboard_actions.dart';
-
+import '../widgets/product_result_card.dart';
+import 'package:openfoodfacts/openfoodfacts.dart';
 import 'user_config_screen.dart';
 
 /// Pantalla principal de la aplicación tras el login.
 /// Muestra la cámara de escaneo a pantalla completa con un header flotante
 /// y un panel de acciones en la parte inferior.
+
+void setupOFF() {
+  // Configuración global (opcional pero recomendada)
+  OpenFoodAPIConfiguration.userAgent = UserAgent(
+    name: 'NombreDeTuApp',
+    version: '1.0.0',
+    system: 'Android/iOS',
+  );
+  // Definimos que queremos resultados en español
+  OpenFoodAPIConfiguration.globalLanguages = [OpenFoodFactsLanguage.SPANISH];
+  OpenFoodAPIConfiguration.globalCountry = OpenFoodFactsCountry.SPAIN;
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -18,22 +32,75 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  /// Producto recuperado de OFF tras el último escaneo exitoso.
+  Product? _lastProduct;
+
+  /// true mientras se consulta la API (muestra el spinner).
+  bool _isFetchingProduct = false;
+
+  /// true mientras la card de resultado está abierta (bloquea nuevos escaneos).
+  bool _cardVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    setupOFF();
+  }
+
   /// Callback que recibe el código de barras detectado por [CameraViewfinder].
-  /// Por ahora muestra un AlertDialog básico — pendiente de integrar
-  /// con la base de datos de productos.
-  void _onBarcodeScanned(String code) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Código Detectado'),
-        content: Text('Código: "$code" leído'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  /// Consulta la API de Open Food Facts y guarda el [Product] resultante.
+  Future<void> _onBarcodeScanned(String code) async {
+    // Bloquear si hay petición en curso o card visible
+    if (_isFetchingProduct || _cardVisible) return;
+
+    setState(() => _isFetchingProduct = true);
+
+    try {
+      final config = ProductQueryConfiguration(
+        code,
+        version: ProductQueryVersion.v3,
+        fields: [ProductField.ALL],
+      );
+
+      final result = await OpenFoodAPIClient.getProductV3(config);
+
+      if (!mounted) return;
+
+      if (result.product != null) {
+        setState(() {
+          _lastProduct = result.product;
+          _isFetchingProduct = false; // ocultar spinner antes de mostrar card
+          _cardVisible = true;
+        });
+        await _mostrarResultadoProducto(result.product!);
+        if (mounted) setState(() => _cardVisible = false);
+      } else {
+        if (result.result?.id == ProductResultV3.resultProductNotFound) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Producto no encontrado (código: $code)')),
+          );
+        }
+        setState(() => _isFetchingProduct = false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al consultar el producto. Comprueba tu conexión.')),
+      );
+      setState(() => _isFetchingProduct = false);
+    }
+  }
+
+  /// Muestra la card de resultado y espera a que el usuario la cierre.
+  Future<void> _mostrarResultadoProducto(Product product) async {
+    final healthProfile = Map<String, dynamic>.from(
+      UserService.instance.currentUserData?['health_profile'] ?? {},
+    );
+
+    await showProductResultCard(
+      context,
+      product: product,
+      healthProfile: healthProfile,
     );
   }
 
@@ -58,113 +125,112 @@ class _HomeScreenState extends State<HomeScreen> {
       initials = user!.email![0].toUpperCase();
     }
 
-    // Layout en Stack: cámara de fondo, header flotante encima, panel inferior
+    // Layout: Column — cámara ocupa espacio restante, barra inferior a su altura natural.
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
+      body: Column(
         children: [
-          // 1. Área de cámara — ocupa todo el espacio excepto el hueco del panel inferior
-          Positioned.fill(
-            bottom: 100,
-            child: CameraViewfinder(onScan: _onBarcodeScanned),
-          ),
-
-          // 2. Header flotante sobre la cámara con saludo y avatar del usuario
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 16.0,
+          // 1. Área de cámara con header flotante encima
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CameraViewfinder(onScan: _onBarcodeScanned),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Saludo con nombre del usuario
-                    Text(
-                      'Hola, $displayName',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        // Sombra para legibilidad sobre la imagen de cámara
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+
+                // Header flotante con saludo y avatar del usuario
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 16.0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Saludo con nombre del usuario
+                          Text(
+                            'Hola, $displayName',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black45,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Avatar circular — al pulsar navega a UserConfigScreen
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const UserConfigScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  initials,
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
-                    // Avatar circular con la inicial del usuario.
-                    // Al pulsar navega a UserConfigScreen.
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const UserConfigScreen(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            initials,
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
 
-          // 3. Panel de acciones inferior con Buscar, Escanear e Historial
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+          // 2. Panel de acciones inferior a su altura natural
+          SafeArea(
+            top: false,
             child: DashboardActions(
               onSearchTap: () {
-                // Pendiente: navegar a pantalla de búsqueda
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Buscador: Próximamente')),
                 );
               },
               onHistoryTap: () {
-                // Pendiente: navegar a pantalla de historial de escaneos
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Historial: Próximamente')),
                 );
               },
               onScanTap: () {
-                // La cámara ya está activa continuamente — este botón
-                // sirve de recordatorio visual al usuario
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('La cámara ya está activa para escanear'),
