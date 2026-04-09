@@ -20,6 +20,10 @@ class CameraViewfinder extends StatefulWidget {
 class _CameraViewfinderState extends State<CameraViewfinder> {
   bool _isScanning = true;
 
+  /// true mientras se ejecuta el ciclo stop()+start() de recuperación.
+  /// Evita que múltiples errorBuilder consecutivos lancen recuperaciones paralelas.
+  bool _isRecovering = false;
+
   void _handleBarcode(BarcodeCapture capture) {
     if (!_isScanning) return;
 
@@ -35,6 +39,27 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
     }
   }
 
+  /// Recuperación ante un doble inicio del controlador.
+  ///
+  /// Cuando MobileScanner y nuestro código llaman start() en paralelo (race
+  /// condition por eventos de ciclo de vida de Android), el controlador guarda
+  /// el error en su value y el widget muestra el errorBuilder en lugar del feed.
+  /// Como la cámara SÍ está corriendo (el primer start() tuvo éxito), hacemos
+  /// un ciclo stop()+start() limpio para borrar el estado de error y restaurar
+  /// el feed sin mostrar ningún mensaje al usuario.
+  void _recoverCamera() {
+    if (_isRecovering) return;
+    _isRecovering = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await widget.controller.stop();
+        if (mounted) await widget.controller.start();
+      } catch (_) {}
+      if (mounted) setState(() => _isRecovering = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -44,6 +69,33 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
           controller: widget.controller,
           onDetect: _handleBarcode,
           fit: BoxFit.cover,
+          errorBuilder: (context, error) {
+            if (error.errorCode ==
+                MobileScannerErrorCode.controllerAlreadyInitialized) {
+              // La cámara ya está corriendo — recuperar sin mostrar error al usuario
+              _recoverCamera();
+              return const ColoredBox(color: Colors.black);
+            }
+            // Error real (permisos denegados, hardware no disponible, etc.)
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.videocam_off_outlined,
+                    color: Colors.white54,
+                    size: 52,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    error.errorDetails?.message ?? 'Cámara no disponible',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
 
         // Overlay semitransparente

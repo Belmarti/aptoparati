@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../services/user_service.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/action_button.dart';
@@ -12,6 +14,52 @@ class LoginScreen extends StatefulWidget {
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
+}
+
+/// Logo "G" de Google construido con texto coloreado — sin assets externos.
+class _GoogleLogo extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    const startAngle = -0.52; // ~-30 grados en radianes
+    const sweepBlue   = 1.48;
+    const sweepRed    = 1.57;
+    const sweepYellow = 1.57;
+    const sweepGreen  = 1.80;
+
+    final strokeWidth = size.width * 0.18;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Azul
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect.deflate(strokeWidth / 2), startAngle, sweepBlue, false, paint);
+    // Rojo
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect.deflate(strokeWidth / 2), startAngle + sweepBlue, sweepRed, false, paint);
+    // Amarillo
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect.deflate(strokeWidth / 2), startAngle + sweepBlue + sweepRed, sweepYellow, false, paint);
+    // Verde
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect.deflate(strokeWidth / 2), startAngle + sweepBlue + sweepRed + sweepYellow, sweepGreen, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -161,6 +209,87 @@ class _LoginScreenState extends State<LoginScreen> {
     emailController.dispose();
   }
 
+  /// Inicia sesión con Google mediante el flujo OAuth estándar.
+  /// Si el usuario es nuevo, crea su documento en Firestore con perfil vacío.
+  /// Si ya existe, actualiza el campo last_login.
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+
+      // El usuario canceló el selector de cuentas
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = userCredential.user!;
+      final uid = user.uid;
+
+      // Comprobar si ya existe el documento del usuario en Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      if (!doc.exists) {
+        // Nuevo usuario de Google — crear documento con perfil de salud vacío
+        final now = Timestamp.now();
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'personal_info': {
+            'email': user.email ?? '',
+            'name': user.displayName ?? 'Usuario',
+            'created_at': now,
+            'last_login': now,
+          },
+          'subscription': {
+            'status': 'free',
+            'plan_id': 'basic',
+            'expiry_date': null,
+          },
+          'health_profile': {
+            'is_diabetic': false,
+            'has_celiac_disease': false,
+            'allergens': [],
+            'custom_restrictions': [],
+          },
+          'stats': {'scans_today': 0, 'last_scan_date': now},
+        });
+      } else {
+        // Usuario existente — solo actualizar last_login
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'personal_info.last_login': Timestamp.now(),
+        });
+      }
+
+      await UserService.instance.fetchUserData(uid);
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al iniciar sesión con Google. Inténtalo de nuevo.'),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -285,6 +414,57 @@ class _LoginScreenState extends State<LoginScreen> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ActionButton(text: 'Iniciar Sesión', onPressed: _login),
+
+                const SizedBox(height: 20),
+
+                // Separador "o continúa con"
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'o continúa con',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Botón Google
+                OutlinedButton(
+                  onPressed: _isLoading ? null : _signInWithGoogle,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    backgroundColor: Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Logo "G" de Google con sus colores corporativos
+                      _GoogleLogo(),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Continuar con Google',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 const SizedBox(height: 24),
 

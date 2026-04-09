@@ -49,15 +49,21 @@ class _ProductResultSheet extends StatelessWidget {
       snap: true,
       snapSizes: const [0.36, 0.93],
       builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        // Stack de dos capas para eliminar el sangrado de cámara en esquinas:
+        // - ColoredBox: rellena el rectángulo completo (esquinas incluidas) con blanco
+        // - ClipRRect: recorta el contenido a la forma redondeada
+        // Así las esquinas redondeadas muestran blanco en lugar de la cámara detrás.
+        return Stack(
+          children: [
+            const ColoredBox(color: Colors.white),
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -116,6 +122,8 @@ class _ProductResultSheet extends StatelessWidget {
               ),
             ),
           ),
+        ),
+          ],
         );
       },
     );

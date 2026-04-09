@@ -7,6 +7,8 @@ import '../widgets/dashboard_actions.dart';
 import '../widgets/product_result_card.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import 'user_config_screen.dart';
+import 'search_screen.dart';
+import 'recent_scans_screen.dart';
 
 /// Pantalla principal de la aplicación tras el login.
 /// Muestra la cámara de escaneo a pantalla completa con un header flotante
@@ -81,12 +83,26 @@ class _HomeScreenState extends State<HomeScreen> {
           _lastProduct = result.product;
           _isFetchingProduct = false;
           _cardVisible = true;
+          // La cámara NO se pausa: sigue corriendo pero _cardVisible bloquea
+          // el procesamiento de nuevos escaneos. Evita el ciclo pause()/start()
+          // que genera conflictos con el gestor de ciclo de vida de MobileScanner.
         });
-        await _cameraController.pause();  // congela el frame, detiene escaneo
+
+        // Guardar en historial de recientes (fire & forget, no bloquea la UI)
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          UserService.instance.saveRecentScan(
+            uid,
+            barcode: code,
+            name: result.product!.productName ?? 'Producto sin nombre',
+            imgUrl: result.product!.imageFrontSmallUrl ?? '',
+          );
+        }
+
         await _mostrarResultadoProducto(result.product!);
         if (mounted) {
+          // La cámara sigue corriendo — solo restaurar el flag para aceptar escaneos
           setState(() => _cardVisible = false);
-          await _cameraController.start(); // reanuda al cerrar la card
         }
       } else {
         if (result.result?.id == ProductResultV3.resultProductNotFound) {
@@ -102,6 +118,40 @@ class _HomeScreenState extends State<HomeScreen> {
         const SnackBar(content: Text('Error al consultar el producto. Comprueba tu conexión.')),
       );
       setState(() => _isFetchingProduct = false);
+    }
+  }
+
+  /// Detiene la cámara, navega a [screen] y la reanuda al volver.
+  ///
+  /// Por qué es necesario:
+  /// El widget MobileScanner registra su propio WidgetsBindingObserver y llama
+  /// start() al recibir AppLifecycleState.resumed. Si durante la navegación el
+  /// usuario minimiza y restaura la app (o cierra un modal en Android, que puede
+  /// disparar resumed), MobileScanner inicia la cámara. Al volver nosotros también
+  /// intentaríamos iniciarla → doble start → error.
+  ///
+  /// Solución:
+  /// 1. stop() con guard antes de navegar.
+  /// 2. Al volver, solo llamar start() si la cámara no fue ya iniciada
+  ///    por el gestor de ciclo de vida de MobileScanner (isRunning == false).
+  /// 3. try/catch como última línea de defensa ante la race condition donde
+  ///    isRunning aún no refleja el inicio en curso del lifecycle handler.
+  Future<void> _navigateWithCameraStop(Widget screen) async {
+    try {
+      await _cameraController.stop();
+    } catch (_) {}
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => screen),
+    );
+
+    if (!mounted) return;
+    // Solo arrancar si MobileScanner no lo hizo ya durante la navegación
+    if (!_cameraController.value.isRunning) {
+      try {
+        await _cameraController.start();
+      } catch (_) {}
     }
   }
 
@@ -188,14 +238,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           // Avatar circular — al pulsar navega a UserConfigScreen
                           GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const UserConfigScreen(),
-                                ),
-                              );
-                            },
+                            onTap: () => _navigateWithCameraStop(
+                              const UserConfigScreen(),
+                            ),
                             child: Container(
                               width: 44,
                               height: 44,
@@ -237,16 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             top: false,
             child: DashboardActions(
-              onSearchTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Buscador: Próximamente')),
-                );
-              },
-              onHistoryTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Historial: Próximamente')),
-                );
-              },
+              onSearchTap: () => _navigateWithCameraStop(const SearchScreen()),
+              onHistoryTap: () => _navigateWithCameraStop(const RecentScansScreen()),
               onScanTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
