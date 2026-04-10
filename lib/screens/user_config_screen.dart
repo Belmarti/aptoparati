@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../data/health_profile_data.dart';
 import '../services/user_service.dart';
-import '../widgets/action_button.dart';
+import 'health_profile_screen.dart';
 
+/// Pantalla hub de configuración del usuario.
+/// Agrupa las secciones: perfil de salud, accesibilidad e idioma.
 class UserConfigScreen extends StatefulWidget {
   const UserConfigScreen({super.key});
 
@@ -12,220 +13,240 @@ class UserConfigScreen extends StatefulWidget {
 }
 
 class _UserConfigScreenState extends State<UserConfigScreen> {
-  bool _isLoading = false;
+  // Opciones de accesibilidad (sin backend por ahora)
+  bool _lowVisionMode = false;
 
-  // Estado de cada condición médica: clave Firestore → activado/desactivado
-  late final Map<String, bool> _conditions = {
-    for (final c in kHealthConditions) c.key: false,
-  };
+  // Idioma seleccionado (sin backend por ahora)
+  String _selectedLanguage = 'es';
 
-  // Estado de cada alérgeno: clave Firestore → seleccionado/no seleccionado
-  late final Map<String, bool> _allergenSelected = {
-    for (final a in kAllergens) a.key: false,
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  /// Carga el perfil de salud desde la caché de UserService y pre-rellena el estado.
-  void _loadUserData() {
+  /// Devuelve el nombre del usuario o su email como fallback.
+  String get _displayName {
     final userData = UserService.instance.currentUserData;
-    if (userData == null || userData['health_profile'] == null) return;
-
-    final health = userData['health_profile'];
-    setState(() {
-      // Cargar condiciones médicas
-      for (final condition in kHealthConditions) {
-        _conditions[condition.key] = health[condition.key] ?? false;
-      }
-
-      // Marcar los alérgenos que el usuario tiene guardados en Firestore
-      final List<dynamic> savedAllergens = health['allergens'] ?? [];
-      for (final key in savedAllergens) {
-        if (_allergenSelected.containsKey(key)) {
-          _allergenSelected[key] = true;
-        }
-      }
-    });
-  }
-
-  /// Guarda los cambios del perfil de salud en Firestore a través de UserService.
-  /// Preserva el campo custom_restrictions para no sobreescribirlo.
-  Future<void> _saveChanges() async {
-    setState(() => _isLoading = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      // Filtrar solo los alérgenos seleccionados y obtener sus claves Firestore
-      final selectedAllergens = kAllergens
-          .where((a) => _allergenSelected[a.key] == true)
-          .map((a) => a.key)
-          .toList();
-
-      final healthProfileData = {
-        for (final c in kHealthConditions) c.key: _conditions[c.key] ?? false,
-        'allergens': selectedAllergens,
-        // Preservar custom_restrictions para no perder datos existentes
-        'custom_restrictions':
-            UserService.instance.currentUserData?['health_profile']
-                ?['custom_restrictions'] ?? [],
-      };
-
-      await UserService.instance.updateHealthProfile(
-        user.uid,
-        healthProfileData,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cambios guardados correctamente')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar cambios')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    final name = userData?['personal_info']?['name'] as String?;
+    if (name != null && name.trim().isNotEmpty) return name.trim();
+    // Fallback: email del usuario autenticado
+    return FirebaseAuth.instance.currentUser?.email ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración Médica'),
+        title: const Text('Configuración'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(24.0),
-              children: [
-                Text(
-                  'Modifica tus datos',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Actualiza tu perfil para recibir recomendaciones precisas.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 32),
+      backgroundColor: Colors.grey[100],
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        children: [
+          // Cabecera con avatar y nombre/email del usuario
+          _buildUserHeader(colorScheme),
+          const SizedBox(height: 28),
 
-                // Switch por cada condición médica definida en kHealthConditions
-                ...kHealthConditions.map((condition) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildSwitchTile(
-                    title: condition.label,
-                    subtitle: condition.subtitle,
-                    value: _conditions[condition.key] ?? false,
-                    onChanged: (val) =>
-                        setState(() => _conditions[condition.key] = val),
-                    icon: condition.icon,
-                  ),
-                )),
+          // Card: Perfil de salud
+          _buildHealthProfileCard(colorScheme),
+          const SizedBox(height: 16),
 
-                const SizedBox(height: 16),
+          // Card: Accesibilidad
+          _buildAccessibilityCard(colorScheme),
+          const SizedBox(height: 16),
 
-                Text(
-                  'Alergias e Intolerancias',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Chips seleccionables, uno por cada alérgeno definido en kAllergens
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: kAllergens.map((allergen) {
-                    final selected = _allergenSelected[allergen.key] ?? false;
-                    return FilterChip(
-                      label: Text(allergen.label),
-                      selected: selected,
-                      onSelected: (val) =>
-                          setState(() => _allergenSelected[allergen.key] = val),
-                      selectedColor: primaryColor.withValues(alpha: 0.2),
-                      checkmarkColor: primaryColor,
-                      labelStyle: TextStyle(
-                        color: selected ? primaryColor : Colors.black87,
-                        fontWeight:
-                            selected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 48),
-
-                ActionButton(text: 'Guardar Cambios', onPressed: _saveChanges),
-              ],
-            ),
+          // Card: Idioma
+          _buildLanguageCard(colorScheme),
+        ],
+      ),
     );
   }
 
-  /// Construye un tile con switch estilizado para condiciones médicas.
-  /// Cambia el borde y la sombra según si está activado o no.
-  Widget _buildSwitchTile({
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required IconData icon,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: value ? colorScheme.primary : Colors.grey.shade300,
-          width: value ? 2.0 : 1.0,
-        ),
-        boxShadow: value
-            ? [
-                BoxShadow(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : [],
-      ),
-      child: SwitchListTile(
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: value ? FontWeight.bold : FontWeight.normal,
-            color: value ? colorScheme.primary : Colors.black87,
+  /// Cabecera con avatar circular y nombre/email del usuario.
+  Widget _buildUserHeader(ColorScheme colorScheme) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundColor: colorScheme.primary,
+          child: Text(
+            _displayName.isNotEmpty ? _displayName[0].toUpperCase() : '?',
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        value: value,
-        onChanged: onChanged,
-        secondary: Icon(icon, color: value ? colorScheme.primary : Colors.grey),
-        activeThumbColor: colorScheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _displayName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tu perfil de configuración',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Card navegable hacia la pantalla de edición del perfil de salud.
+  Widget _buildHealthProfileCard(ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.favorite_outline, color: colorScheme.primary),
+        ),
+        title: const Text(
+          'Perfil de Salud',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        subtitle: Text(
+          'Condiciones médicas y alergias',
+          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+        ),
+        trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HealthProfileScreen()),
+        ),
+      ),
+    );
+  }
+
+  /// Card de accesibilidad con switch para modo baja visión.
+  /// Sin backend — solo estado local por ahora.
+  Widget _buildAccessibilityCard(ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.accessibility_new_outlined,
+                      color: colorScheme.primary),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'Accesibilidad',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, indent: 20, endIndent: 20),
+          SwitchListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            title: const Text(
+              'Modo baja visión',
+              style: TextStyle(fontSize: 15),
+            ),
+            subtitle: Text(
+              'Aumenta el contraste y el tamaño del texto',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            value: _lowVisionMode,
+            onChanged: (val) => setState(() => _lowVisionMode = val),
+            activeColor: colorScheme.primary,
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  /// Card de selección de idioma (español, inglés, francés).
+  /// Sin backend — solo estado local por ahora.
+  Widget _buildLanguageCard(ColorScheme colorScheme) {
+    final languages = [
+      ('es', 'Español'),
+      ('en', 'Inglés'),
+      ('fr', 'Francés'),
+    ];
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.language_outlined,
+                      color: colorScheme.primary),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'Idioma',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, indent: 20, endIndent: 20),
+          // Opciones de idioma como radio buttons
+          ...languages.map(
+            (lang) => RadioListTile<String>(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              title: Text(lang.$2, style: const TextStyle(fontSize: 15)),
+              value: lang.$1,
+              groupValue: _selectedLanguage,
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedLanguage = val);
+              },
+              activeColor: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
       ),
     );
   }

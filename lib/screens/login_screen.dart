@@ -8,6 +8,7 @@ import '../widgets/action_button.dart';
 import '../widgets/text_action_button.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -374,7 +375,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tu guía de alimentación saludable',
+                  //TEXTO PASADO A l10n
+                  AppLocalizations.of(context)!.loginTagline,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
