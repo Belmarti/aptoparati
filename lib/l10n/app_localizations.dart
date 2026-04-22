@@ -100,21 +100,12 @@ abstract class AppLocalizations {
     Locale('fr'),
   ];
 
-  /// No description provided for @appTitle.
-  ///
-  /// In es, this message translates to:
   /// **'AptoParaTi'**
   String get appTitle;
 
-  /// No description provided for @welcomeMessage.
-  ///
-  /// In es, this message translates to:
   /// **'Bienvenido a AptoParaTi'**
   String get welcomeMessage;
 
-  /// No description provided for @loginTagline.
-  ///
-  /// In es, this message translates to:
   /// **'Tu guía de alimentación'**
   String get loginTagline;
 }
