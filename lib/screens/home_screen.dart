@@ -74,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
         fields: [ProductField.ALL],
       );
 
+      //llamada a OFF con el get de code,version y fields que queremos
       final result = await OpenFoodAPIClient.getProductV3(config);
 
       if (!mounted) return;
@@ -136,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ///    por el gestor de ciclo de vida de MobileScanner (isRunning == false).
   /// 3. try/catch como última línea de defensa ante la race condition donde
   ///    isRunning aún no refleja el inicio en curso del lifecycle handler.
+  /// 
   Future<void> _navigateWithCameraStop(Widget screen) async {
     try {
       await _cameraController.stop();

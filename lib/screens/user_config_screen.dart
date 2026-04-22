@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import 'health_profile_screen.dart';
+import 'login_screen.dart';
 
 /// Pantalla hub de configuración del usuario.
 /// Agrupa las secciones: perfil de salud, accesibilidad e idioma.
@@ -83,14 +84,32 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _displayName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _displayName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // Botón de cerrar sesión alineado a la derecha del nombre
+                  TextButton.icon(
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout, size: 18),
+                    label: const Text('Salir', style: TextStyle(fontSize: 16)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color.fromARGB(255, 231, 81, 78),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -101,6 +120,18 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Cierra la sesión del usuario y navega a la pantalla de login.
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    UserService.instance.clear();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
     );
   }
 
