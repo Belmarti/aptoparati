@@ -1,4 +1,5 @@
 import 'package:openfoodfacts/openfoodfacts.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Resultado de comprobar si un producto es apto para el usuario.
 class AptitudResult {
@@ -34,16 +35,6 @@ class AptitudService {
     'fish':      [AllergensTag.FISH.offTag],
   };
 
-  // Nombre legible de cada alérgeno para mostrarlo al usuario
-  static const Map<String, String> _allergenNombres = {
-    'nuts':      'Frutos secos',
-    'lactose':   'Lactosa / Leche',
-    'shellfish': 'Marisco',
-    'egg':       'Huevo',
-    'soy':       'Soja',
-    'fish':      'Pescado',
-  };
-
   // Tag de OFF para gluten (enfermedad celíaca)
   static final String _glutenTag = AllergensTag.GLUTEN.offTag;
 
@@ -51,6 +42,7 @@ class AptitudService {
   static const double _umbralAzucarDiabeticos = 10.0;
 
   /// Evalúa si [product] es apto según el [healthProfile] del usuario.
+  /// Recibe [l10n] para generar los mensajes de motivos en el idioma del usuario.
   ///
   /// [healthProfile] corresponde al subdocumento `health_profile` de Firestore:
   /// ```json
@@ -64,6 +56,7 @@ class AptitudService {
   static AptitudResult evaluar(
     Product product,
     Map<String, dynamic> healthProfile,
+    AppLocalizations l10n,
   ) {
     final List<String> motivos = [];
     final Set<String> tagsIncompatibles = {};
@@ -80,7 +73,7 @@ class AptitudService {
       final tags = _allergenTags[allergen] ?? [];
       final coincidentes = tags.where((t) => tagsProducto.contains(t));
       if (coincidentes.isNotEmpty) {
-        motivos.add(_allergenNombres[allergen] ?? allergen);
+        motivos.add(_allergenNombre(l10n, allergen));
         tagsIncompatibles.addAll(coincidentes);
       }
     }
@@ -88,7 +81,7 @@ class AptitudService {
     // --- 2. Enfermedad celíaca → gluten ---
     if (healthProfile['has_celiac_disease'] == true) {
       if (tagsProducto.contains(_glutenTag)) {
-        motivos.add('Gluten (enfermedad celíaca)');
+        motivos.add(l10n.aptitudGluten);
         tagsIncompatibles.add(_glutenTag);
       }
     }
@@ -108,11 +101,9 @@ class AptitudService {
       );
 
       if (!tieneDatos) {
-        motivos.add('Sin información nutricional — verifica el azúcar manualmente');
+        motivos.add(l10n.aptitudNoNutritionInfo);
       } else if (azucares != null && azucares > _umbralAzucarDiabeticos) {
-        motivos.add(
-          'Alto contenido en azúcar (${azucares.toStringAsFixed(1)} g/100 g)',
-        );
+        motivos.add(l10n.aptitudHighSugar(azucares.toStringAsFixed(1)));
       }
       // azucares == null con datos reales presentes → campo no registrado, se asume 0
     }
@@ -122,5 +113,18 @@ class AptitudService {
       motivos: motivos,
       tagsIncompatibles: tagsIncompatibles,
     );
+  }
+
+  /// Devuelve el nombre localizado del alérgeno según su clave de backend.
+  static String _allergenNombre(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'nuts':      return l10n.allergenNuts;
+      case 'lactose':   return l10n.allergenLactoseMilk;
+      case 'shellfish': return l10n.allergenShellfish;
+      case 'egg':       return l10n.allergenEgg;
+      case 'soy':       return l10n.allergenSoy;
+      case 'fish':      return l10n.allergenFish;
+      default:          return key;
+    }
   }
 }

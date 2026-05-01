@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/health_profile_data.dart';
 import '../widgets/action_button.dart';
 import 'login_screen.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla del paso 2 del registro.
 /// Recibe los datos personales del paso 1 (nombre, email, contraseña) y
@@ -43,6 +44,7 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
   /// 2. Guarda el documento del usuario en Firestore con su perfil de salud.
   /// Si todo va bien, redirige al LoginScreen y limpia la pila de navegación.
   Future<void> _register() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
 
     try {
@@ -99,7 +101,7 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cuenta creada con éxito')),
+          SnackBar(content: Text(l10n.healthProfileAccountCreated)),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -124,14 +126,14 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil de Salud'),
+        title: Text(l10n.healthProfileTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black,
       ),
       // Mientras se ejecuta el registro, mostrar spinner en lugar del formulario
       body: _isLoading
@@ -140,17 +142,17 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
               padding: const EdgeInsets.all(24.0),
               children: [
                 Text(
-                  '¿Tienes alguna restricción?',
+                  l10n.healthProfileQuestion,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Configura tu perfil para que podamos decirte qué productos son aptos para ti.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  l10n.healthProfileDescription,
+                  style: TextStyle(fontSize: 16, color: colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 32),
 
@@ -158,8 +160,8 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                 ...kHealthConditions.map((condition) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildSwitchTile(
-                    title: condition.label,
-                    subtitle: condition.subtitle,
+                    title: localizedConditionLabel(l10n, condition.key),
+                    subtitle: localizedConditionSubtitle(l10n, condition.key),
                     value: _conditions[condition.key] ?? false,
                     onChanged: (val) =>
                         setState(() => _conditions[condition.key] = val),
@@ -170,11 +172,11 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                 const SizedBox(height: 16),
 
                 Text(
-                  'Alergias e Intolerancias',
+                  l10n.allergiesAndIntolerances,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -186,14 +188,14 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                   children: kAllergens.map((allergen) {
                     final selected = _allergenSelected[allergen.key] ?? false;
                     return FilterChip(
-                      label: Text(allergen.label),
+                      label: Text(localizedAllergenLabel(l10n, allergen.key)),
                       selected: selected,
                       onSelected: (val) =>
                           setState(() => _allergenSelected[allergen.key] = val),
-                      selectedColor: primaryColor.withValues(alpha: 0.2),
-                      checkmarkColor: primaryColor,
+                      selectedColor: colorScheme.primary.withValues(alpha: 0.2),
+                      checkmarkColor: colorScheme.primary,
                       labelStyle: TextStyle(
-                        color: selected ? primaryColor : Colors.black87,
+                        color: selected ? colorScheme.primary : colorScheme.onSurface,
                         fontWeight:
                             selected ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -204,7 +206,7 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
                 const SizedBox(height: 48),
 
                 // Botón que dispara el proceso de registro completo
-                ActionButton(text: 'Finalizar Registro', onPressed: _register),
+                ActionButton(text: l10n.healthProfileFinishButton, onPressed: _register),
               ],
             ),
     );
@@ -224,14 +226,14 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        // Borde verde y más grueso cuando está activado, gris y fino cuando no
+        // Borde primario y más grueso cuando está activado, outline cuando no
         border: Border.all(
-          color: value ? colorScheme.primary : Colors.grey.shade300,
+          color: value ? colorScheme.primary : colorScheme.outlineVariant,
           width: value ? 2.0 : 1.0,
         ),
-        // Sombra verde suave solo cuando está activado
+        // Sombra suave solo cuando está activado
         boxShadow: value
             ? [
                 BoxShadow(
@@ -247,13 +249,13 @@ class _IntolerancesScreenState extends State<IntolerancesScreen> {
           title,
           style: TextStyle(
             fontWeight: value ? FontWeight.bold : FontWeight.normal,
-            color: value ? colorScheme.primary : Colors.black87,
+            color: value ? colorScheme.primary : colorScheme.onSurface,
           ),
         ),
         subtitle: subtitle != null ? Text(subtitle) : null,
         value: value,
         onChanged: onChanged,
-        secondary: Icon(icon, color: value ? colorScheme.primary : Colors.grey),
+        secondary: Icon(icon, color: value ? colorScheme.primary : colorScheme.onSurfaceVariant),
         activeThumbColor: colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

@@ -1,6 +1,163 @@
 {
   "@@locale": "en",
+
   "appTitle": "AptoParaTi",
   "welcomeMessage": "Welcome to AptoParaTi",
-  "loginTagline": "Your nutrition guide"
+  "loginTagline": "Your nutrition guide",
+
+  "emailLabel": "Email",
+  "emailHint": "example@email.com",
+  "passwordLabel": "Password",
+  "passwordHint": "••••••••",
+  "cancelButton": "Cancel",
+  "sendButton": "Send",
+  "continueButton": "Continue",
+  "noDataAvailable": "Not available",
+  "healthProfileTitle": "Health Profile",
+  "allergiesAndIntolerances": "Allergies & Intolerances",
+  "productNameUnknown": "Unknown product",
+  "errorConnection": "Connection error. Check your network.",
+
+  "loginForgotPassword": "Forgot your password?",
+  "loginButton": "Log In",
+  "loginOrContinueWith": "or continue with",
+  "loginWithGoogle": "Continue with Google",
+  "loginNoAccount": "Don't have an account? ",
+  "loginRegisterLink": "Sign Up",
+  "loginErrorEmailPasswordEmpty": "Please enter your email and password",
+  "loginErrorGoogle": "Error signing in with Google. Please try again.",
+  "loginErrorGeneric": "Error signing in",
+  "loginErrorUserNotFound": "No user found with that email.",
+  "loginErrorWrongPassword": "Incorrect password.",
+  "loginErrorInvalidEmail": "The email is not valid.",
+
+  "resetPasswordTitle": "Reset password",
+  "resetPasswordDescription": "We'll send you an email to reset your password.",
+  "resetPasswordEmptyEmail": "Enter your email address.",
+  "resetPasswordSuccessMessage": "Reset email sent. Check your inbox.",
+  "resetPasswordErrorGeneric": "Error sending email",
+  "resetPasswordErrorUserNotFound": "No account found with that email.",
+  "resetPasswordErrorUnexpected": "Unexpected error. Please try again.",
+
+  "registerTitle": "Create your account",
+  "registerStep": "Step 1 of 2: Basic information",
+  "registerNameLabel": "Full name",
+  "registerNameHint": "John Doe",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerLoginLink": "Log In",
+  "registerValidationError": "Please fill in all fields",
+
+  "healthProfileQuestion": "Do you have any restrictions?",
+  "healthProfileDescription": "Set up your profile so we can tell you which products are suitable for you.",
+  "healthProfileFinishButton": "Finish Registration",
+  "healthProfileAccountCreated": "Account created successfully",
+  "healthProfileEditTitle": "Edit your data",
+  "healthProfileEditDescription": "Update your profile to get accurate recommendations.",
+  "healthProfileSaveButton": "Save Changes",
+  "healthProfileSaveSuccess": "Changes saved successfully",
+  "healthProfileSaveError": "Error saving changes",
+
+  "homeDefaultUser": "User",
+  "homeGreeting": "Hello, {name}",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "homeProductNotFound": "Product not found (code: {code})",
+  "@homeProductNotFound": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "homeProductApiError": "Error querying product. Check your connection.",
+  "homeCameraAlreadyActive": "Camera is already active for scanning",
+
+  "configTitle": "Settings",
+  "configSubtitle": "Your settings profile",
+  "configHealthProfileSubtitle": "Medical conditions and allergies",
+  "configAccessibilityTitle": "Accessibility",
+  "configLowVisionTitle": "Low vision mode",
+  "configLowVisionSubtitle": "Increases contrast and text size",
+  "configLanguageTitle": "Language",
+  "configSignOut": "Sign out",
+  "configLanguageSpanish": "Spanish",
+  "configLanguageEnglish": "English",
+  "configLanguageFrench": "French",
+
+  "dashboardSearch": "Search",
+  "dashboardRecents": "Recent",
+
+  "cameraUnavailable": "Camera unavailable",
+  "cameraScanInstruction": "Scan the barcode",
+
+  "productIngredients": "Ingredients",
+  "productIncompatibleLabel": "Incompatible with you",
+  "productAllergenNotAffecting": "Allergen (doesn't affect you)",
+  "productNutritionTitle": "Nutritional information",
+  "productNutritionPer100": "Per 100 g / 100 ml",
+  "productNutritionEnergy": "Energy",
+  "productNutritionFat": "Fat",
+  "productNutritionSaturatedFat": "  of which saturates",
+  "productNutritionCarbs": "Carbohydrates",
+  "productNutritionSugars": "  of which sugars",
+  "productNutritionFiber": "Fibre",
+  "productNutritionProtein": "Protein",
+  "productNutritionSalt": "Salt",
+  "productApt": "Suitable for you",
+  "productNotApt": "Not suitable for you",
+  "productIncompatibleProfile": "Incompatible with your profile:",
+
+  "searchTitle": "Search product",
+  "searchInstruction": "Enter the product barcode",
+  "searchHint": "e.g. 8480017513753",
+  "searchEmptyState": "Enter the code and tap search",
+  "searchEmptyCodeError": "Enter a barcode",
+  "searchProductNotFound": "Product not found for that code",
+
+  "recentScansTitle": "Recent scans",
+  "recentScansLoadError": "Error loading scans",
+  "recentScansEmpty": "You haven't scanned any product yet",
+
+  "timeNow": "Just now",
+  "timeMinutesAgo": "{minutes} min ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "timeHoursAgo": "{hours} h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "timeYesterday": "Yesterday",
+  "timeDaysAgo": "{days} days ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+
+  "allergenNuts": "Tree nuts",
+  "allergenLactose": "Lactose",
+  "allergenLactoseMilk": "Lactose / Milk",
+  "allergenShellfish": "Shellfish",
+  "allergenEgg": "Egg",
+  "allergenSoy": "Soy",
+  "allergenFish": "Fish",
+
+  "conditionDiabetic": "I am diabetic",
+  "conditionCeliac": "I am coeliac",
+  "conditionCeliacSubtitle": "Strictly avoid gluten",
+
+  "aptitudGluten": "Gluten (coeliac disease)",
+  "aptitudNoNutritionInfo": "No nutritional information — check sugar manually",
+  "aptitudHighSugar": "High sugar content ({value} g/100 g)",
+  "@aptitudHighSugar": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  }
 }

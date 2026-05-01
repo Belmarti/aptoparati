@@ -79,6 +79,8 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Pre-rellena el campo con el email introducido en el formulario principal.
   /// Invoca [FirebaseAuth.sendPasswordResetEmail] y notifica al usuario mediante SnackBar.
   Future<void> _showPasswordResetDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+
     // Pre-rellenar con el email del formulario principal si ya fue introducido
     final emailController = TextEditingController(
       text: _emailController.text.trim(),
@@ -96,20 +98,18 @@ class _LoginScreenState extends State<LoginScreen> {
         return StatefulBuilder(
           builder: (builderContext, setDialogState) {
             return AlertDialog(
-              title: const Text('Restablecer contraseña'),
+              title: Text(l10n.resetPasswordTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Te enviaremos un correo para restablecer tu contraseña.',
-                  ),
+                  Text(l10n.resetPasswordDescription),
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.emailLabel,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ],
@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           FocusManager.instance.primaryFocus?.unfocus();
                           Navigator.of(dialogContext).pop();
                         },
-                  child: const Text('Cancelar'),
+                  child: Text(l10n.cancelButton),
                 ),
                 // Mostrar indicador de carga mientras se envía la petición a Firebase
                 isSending
@@ -143,8 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Validación: campo vacío — informar al usuario
                           if (email.isEmpty) {
                             scaffoldMessenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Introduce tu correo electrónico.'),
+                              SnackBar(
+                                content: Text(l10n.resetPasswordEmptyEmail),
                               ),
                             );
                             return;
@@ -163,20 +163,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.of(dialogContext).pop();
                               scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Correo de restablecimiento enviado. Revisa tu bandeja de entrada.',
-                                  ),
+                                SnackBar(
+                                  content: Text(l10n.resetPasswordSuccessMessage),
                                 ),
                               );
                             }
                           } on FirebaseAuthException catch (e) {
-                            // Mapeo de códigos de error de Firebase Auth a mensajes en español
-                            String message = 'Error al enviar el correo';
+                            // Mapeo de códigos de error de Firebase Auth a mensajes localizados
+                            String message = l10n.resetPasswordErrorGeneric;
                             if (e.code == 'user-not-found') {
-                              message = 'No existe una cuenta con ese correo.';
+                              message = l10n.resetPasswordErrorUserNotFound;
                             } else if (e.code == 'invalid-email') {
-                              message = 'El correo no es válido.';
+                              message = l10n.loginErrorInvalidEmail;
                             }
                             // Restaurar botón en error — el diálogo queda abierto para reintentar
                             if (dialogContext.mounted) {
@@ -190,14 +188,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (dialogContext.mounted) {
                               setDialogState(() => isSending = false);
                               scaffoldMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Error inesperado. Inténtalo de nuevo.'),
+                                SnackBar(
+                                  content: Text(l10n.resetPasswordErrorUnexpected),
                                 ),
                               );
                             }
                           }
                         },
-                        child: const Text('Enviar'),
+                        child: Text(l10n.sendButton),
                       ),
               ],
             );
@@ -214,6 +212,10 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Si el usuario es nuevo, crea su documento en Firestore con perfil vacío.
   /// Si ya existe, actualiza el campo last_login.
   Future<void> _signInWithGoogle() async {
+    final l10n = AppLocalizations.of(context)!;
+    // Capturar l10n antes del async gap para uso posterior
+    final defaultUser = l10n.homeDefaultUser;
+
     setState(() => _isLoading = true);
 
     try {
@@ -248,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'personal_info': {
             'email': user.email ?? '',
-            'name': user.displayName ?? 'Usuario',
+            'name': user.displayName ?? defaultUser,
             'created_at': now,
             'last_login': now,
           },
@@ -282,8 +284,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al iniciar sesión con Google. Inténtalo de nuevo.'),
+          SnackBar(
+            content: Text(l10n.loginErrorGoogle),
           ),
         );
         setState(() => _isLoading = false);
@@ -292,11 +294,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, ingresa tu correo y contraseña'),
-        ),
+        SnackBar(content: Text(l10n.loginErrorEmailPasswordEmpty)),
       );
       return;
     }
@@ -320,13 +322,13 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Error al iniciar sesión';
+      String message = l10n.loginErrorGeneric;
       if (e.code == 'user-not-found') {
-        message = 'No se encontró un usuario con ese correo.';
+        message = l10n.loginErrorUserNotFound;
       } else if (e.code == 'wrong-password') {
-        message = 'Contraseña incorrecta.';
+        message = l10n.loginErrorWrongPassword;
       } else if (e.code == 'invalid-email') {
-        message = 'El correo no es válido.';
+        message = l10n.loginErrorInvalidEmail;
       }
 
       if (mounted) {
@@ -347,6 +349,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Minimalist color palette
     final primaryColor = Theme.of(context).colorScheme.primary;
     final backgroundColor = Theme.of(context).colorScheme.surface;
@@ -364,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // Logo / Title area
                 Text(
-                  'AptoParaTi',
+                  l10n.appTitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,
@@ -375,8 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  //TEXTO PASADO A l10n
-                  AppLocalizations.of(context)!.loginTagline,
+                  l10n.loginTagline,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
@@ -385,8 +387,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Email Input
                 CustomTextField(
                   controller: _emailController,
-                  label: 'Correo electrónico',
-                  hint: 'ejemplo@correo.com',
+                  label: l10n.emailLabel,
+                  hint: l10n.emailHint,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20),
@@ -394,8 +396,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password Input
                 CustomTextField(
                   controller: _passwordController,
-                  label: 'Contraseña',
-                  hint: '••••••••',
+                  label: l10n.passwordLabel,
+                  hint: l10n.passwordHint,
                   obscureText: true,
                 ),
 
@@ -405,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextActionButton(
-                    text: '¿Olvidaste tu contraseña?',
+                    text: l10n.loginForgotPassword,
                     onPressed: _showPasswordResetDialog,
                   ),
                 ),
@@ -415,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Login Button
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ActionButton(text: 'Iniciar Sesión', onPressed: _login),
+                    : ActionButton(text: l10n.loginButton, onPressed: _login),
 
                 const SizedBox(height: 20),
 
@@ -426,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'o continúa con',
+                        l10n.loginOrContinueWith,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade500,
@@ -456,9 +458,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Logo "G" de Google con sus colores corporativos
                       _GoogleLogo(),
                       const SizedBox(width: 10),
-                      const Text(
-                        'Continuar con Google',
-                        style: TextStyle(
+                      Text(
+                        l10n.loginWithGoogle,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
@@ -475,11 +477,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '¿No tienes cuenta? ',
+                      l10n.loginNoAccount,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     TextActionButton(
-                      text: 'Regístrate',
+                      text: l10n.loginRegisterLink,
                       onPressed: () {
                         Navigator.push(
                           context,

@@ -3,6 +3,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/action_button.dart';
 import '../widgets/text_action_button.dart';
 import 'intolerances_screen.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla del paso 1 de 2 del registro.
 /// Recoge nombre, email y contraseña del usuario y, si son válidos,
@@ -32,11 +33,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// Los datos se pasan a [IntolerancesScreen] que ejecutará el registro real
   /// en Firebase al finalizar el segundo paso.
   void _goToStep2() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, completa todos los campos')),
+        SnackBar(content: Text(l10n.registerValidationError)),
       );
       return;
     }
@@ -56,6 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final primaryColor = Theme.of(context).colorScheme.primary;
     final backgroundColor = Theme.of(context).colorScheme.surface;
 
@@ -80,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Crea tu cuenta',
+                  l10n.registerTitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,
@@ -91,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Paso 1 de 2: Información básica',
+                  l10n.registerStep,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
@@ -100,16 +104,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Campo de nombre completo
                 CustomTextField(
                   controller: _nameController,
-                  label: 'Nombre completo',
-                  hint: 'Juan Pérez',
+                  label: l10n.registerNameLabel,
+                  hint: l10n.registerNameHint,
                 ),
                 const SizedBox(height: 20),
 
                 // Campo de correo electrónico
                 CustomTextField(
                   controller: _emailController,
-                  label: 'Correo electrónico',
-                  hint: 'ejemplo@correo.com',
+                  label: l10n.emailLabel,
+                  hint: l10n.emailHint,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20),
@@ -117,15 +121,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Campo de contraseña con texto oculto
                 CustomTextField(
                   controller: _passwordController,
-                  label: 'Contraseña',
-                  hint: '••••••••',
+                  label: l10n.passwordLabel,
+                  hint: l10n.passwordHint,
                   obscureText: true,
                 ),
 
                 const SizedBox(height: 32),
 
                 // Botón que valida y avanza al paso 2
-                ActionButton(text: 'Continuar', onPressed: _goToStep2),
+                ActionButton(text: l10n.continueButton, onPressed: _goToStep2),
 
                 const SizedBox(height: 24),
 
@@ -134,11 +138,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '¿Ya tienes cuenta? ',
+                      l10n.registerAlreadyHaveAccount,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     TextActionButton(
-                      text: 'Inicia Sesión',
+                      text: l10n.registerLoginLink,
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

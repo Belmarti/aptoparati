@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/user_service.dart';
 import '../widgets/product_result_card.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla de búsqueda manual por código de barras.
 /// El usuario introduce el código numérico a mano y se consulta OFF.
@@ -30,10 +31,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
   /// Lanza la búsqueda con el código introducido.
   Future<void> _buscar() async {
+    final l10n = AppLocalizations.of(context)!;
     final codigo = _controller.text.trim();
 
     if (codigo.isEmpty) {
-      setState(() => _errorMsg = 'Introduce un código de barras');
+      setState(() => _errorMsg = l10n.searchEmptyCodeError);
       return;
     }
 
@@ -62,7 +64,7 @@ class _SearchScreenState extends State<SearchScreen> {
           UserService.instance.saveRecentScan(
             uid,
             barcode: codigo,
-            name: result.product!.productName ?? 'Producto sin nombre',
+            name: result.product!.productName ?? l10n.productNameUnknown,
             imgUrl: result.product!.imageFrontSmallUrl ?? '',
           );
         }
@@ -79,36 +81,35 @@ class _SearchScreenState extends State<SearchScreen> {
       } else {
         setState(() {
           _isFetching = false;
-          _errorMsg = 'Producto no encontrado para ese código';
+          _errorMsg = l10n.searchProductNotFound;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isFetching = false;
-        _errorMsg = 'Error de conexión. Comprueba tu red.';
+        _errorMsg = l10n.errorConnection;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryColor = colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Buscar producto',
-          style: TextStyle(
-            color: Colors.black87,
+        title: Text(
+          l10n.searchTitle,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -121,10 +122,10 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             // Instrucción
             Text(
-              'Introduce el código de barras del producto',
+              l10n.searchInstruction,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -143,27 +144,27 @@ class _SearchScreenState extends State<SearchScreen> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => _buscar(),
                     decoration: InputDecoration(
-                      hintText: 'Ej: 8480017513753',
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      hintText: l10n.searchHint,
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       prefixIcon: Icon(
                         Icons.tag_rounded,
-                        color: Colors.grey.shade500,
+                        color: colorScheme.onSurfaceVariant,
                         size: 20,
                       ),
                       errorText: _errorMsg,
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: colorScheme.surfaceContainerHighest,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: colorScheme.outlineVariant),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: colorScheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -194,6 +195,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: primaryColor.withValues(alpha: 0.5),
+                      // Evita que el tema de baja visión (minimumSize: double.infinity)
+                      // rompa el layout al estar dentro de un Row con Expanded.
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -226,14 +231,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     Icon(
                       Icons.barcode_reader,
                       size: 72,
-                      color: Colors.grey.shade200,
+                      color: colorScheme.outlineVariant,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Introduce el código y pulsa buscar',
+                      l10n.searchEmptyState,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade400,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

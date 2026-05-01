@@ -1,6 +1,163 @@
 {
   "@@locale": "fr",
+
   "appTitle": "AptoParaTi",
   "welcomeMessage": "Bienvenue sur AptoParaTi",
-  "loginTagline": "Votre guide nutritionnel"
+  "loginTagline": "Votre guide nutritionnel",
+
+  "emailLabel": "E-mail",
+  "emailHint": "exemple@email.com",
+  "passwordLabel": "Mot de passe",
+  "passwordHint": "••••••••",
+  "cancelButton": "Annuler",
+  "sendButton": "Envoyer",
+  "continueButton": "Continuer",
+  "noDataAvailable": "Non disponible",
+  "healthProfileTitle": "Profil de santé",
+  "allergiesAndIntolerances": "Allergies et intolérances",
+  "productNameUnknown": "Produit inconnu",
+  "errorConnection": "Erreur de connexion. Vérifiez votre réseau.",
+
+  "loginForgotPassword": "Mot de passe oublié ?",
+  "loginButton": "Se connecter",
+  "loginOrContinueWith": "ou continuer avec",
+  "loginWithGoogle": "Continuer avec Google",
+  "loginNoAccount": "Pas encore de compte ? ",
+  "loginRegisterLink": "S'inscrire",
+  "loginErrorEmailPasswordEmpty": "Veuillez saisir votre e-mail et mot de passe",
+  "loginErrorGoogle": "Erreur de connexion avec Google. Réessayez.",
+  "loginErrorGeneric": "Erreur de connexion",
+  "loginErrorUserNotFound": "Aucun utilisateur trouvé avec cet e-mail.",
+  "loginErrorWrongPassword": "Mot de passe incorrect.",
+  "loginErrorInvalidEmail": "L'e-mail n'est pas valide.",
+
+  "resetPasswordTitle": "Réinitialiser le mot de passe",
+  "resetPasswordDescription": "Nous vous enverrons un e-mail pour réinitialiser votre mot de passe.",
+  "resetPasswordEmptyEmail": "Saisissez votre adresse e-mail.",
+  "resetPasswordSuccessMessage": "E-mail de réinitialisation envoyé. Vérifiez votre boîte de réception.",
+  "resetPasswordErrorGeneric": "Erreur lors de l'envoi de l'e-mail",
+  "resetPasswordErrorUserNotFound": "Aucun compte trouvé avec cet e-mail.",
+  "resetPasswordErrorUnexpected": "Erreur inattendue. Réessayez.",
+
+  "registerTitle": "Créer votre compte",
+  "registerStep": "Étape 1 sur 2 : Informations de base",
+  "registerNameLabel": "Nom complet",
+  "registerNameHint": "Jean Dupont",
+  "registerAlreadyHaveAccount": "Déjà un compte ? ",
+  "registerLoginLink": "Se connecter",
+  "registerValidationError": "Veuillez remplir tous les champs",
+
+  "healthProfileQuestion": "Avez-vous des restrictions alimentaires ?",
+  "healthProfileDescription": "Configurez votre profil pour que nous puissions vous dire quels produits vous conviennent.",
+  "healthProfileFinishButton": "Terminer l'inscription",
+  "healthProfileAccountCreated": "Compte créé avec succès",
+  "healthProfileEditTitle": "Modifier vos données",
+  "healthProfileEditDescription": "Mettez à jour votre profil pour obtenir des recommandations précises.",
+  "healthProfileSaveButton": "Enregistrer les modifications",
+  "healthProfileSaveSuccess": "Modifications enregistrées avec succès",
+  "healthProfileSaveError": "Erreur lors de l'enregistrement",
+
+  "homeDefaultUser": "Utilisateur",
+  "homeGreeting": "Bonjour, {name}",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "homeProductNotFound": "Produit introuvable (code : {code})",
+  "@homeProductNotFound": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "homeProductApiError": "Erreur lors de la consultation du produit. Vérifiez votre connexion.",
+  "homeCameraAlreadyActive": "La caméra est déjà active pour scanner",
+
+  "configTitle": "Paramètres",
+  "configSubtitle": "Votre profil de configuration",
+  "configHealthProfileSubtitle": "Conditions médicales et allergies",
+  "configAccessibilityTitle": "Accessibilité",
+  "configLowVisionTitle": "Mode basse vision",
+  "configLowVisionSubtitle": "Augmente le contraste et la taille du texte",
+  "configLanguageTitle": "Langue",
+  "configSignOut": "Déconnexion",
+  "configLanguageSpanish": "Espagnol",
+  "configLanguageEnglish": "Anglais",
+  "configLanguageFrench": "Français",
+
+  "dashboardSearch": "Rechercher",
+  "dashboardRecents": "Récents",
+
+  "cameraUnavailable": "Caméra indisponible",
+  "cameraScanInstruction": "Scannez le code-barres",
+
+  "productIngredients": "Ingrédients",
+  "productIncompatibleLabel": "Incompatible avec vous",
+  "productAllergenNotAffecting": "Allergène (ne vous affecte pas)",
+  "productNutritionTitle": "Informations nutritionnelles",
+  "productNutritionPer100": "Pour 100 g / 100 ml",
+  "productNutritionEnergy": "Énergie",
+  "productNutritionFat": "Matières grasses",
+  "productNutritionSaturatedFat": "  dont acides gras saturés",
+  "productNutritionCarbs": "Glucides",
+  "productNutritionSugars": "  dont sucres",
+  "productNutritionFiber": "Fibres",
+  "productNutritionProtein": "Protéines",
+  "productNutritionSalt": "Sel",
+  "productApt": "Convient pour vous",
+  "productNotApt": "Ne convient pas pour vous",
+  "productIncompatibleProfile": "Incompatible avec votre profil :",
+
+  "searchTitle": "Rechercher un produit",
+  "searchInstruction": "Entrez le code-barres du produit",
+  "searchHint": "Ex : 8480017513753",
+  "searchEmptyState": "Entrez le code et appuyez sur rechercher",
+  "searchEmptyCodeError": "Entrez un code-barres",
+  "searchProductNotFound": "Produit introuvable pour ce code",
+
+  "recentScansTitle": "Scans récents",
+  "recentScansLoadError": "Erreur lors du chargement des scans",
+  "recentScansEmpty": "Vous n'avez encore scanné aucun produit",
+
+  "timeNow": "À l'instant",
+  "timeMinutesAgo": "Il y a {minutes} min",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "timeHoursAgo": "Il y a {hours} h",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "timeYesterday": "Hier",
+  "timeDaysAgo": "Il y a {days} jours",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+
+  "allergenNuts": "Fruits à coque",
+  "allergenLactose": "Lactose",
+  "allergenLactoseMilk": "Lactose / Lait",
+  "allergenShellfish": "Crustacés",
+  "allergenEgg": "Œuf",
+  "allergenSoy": "Soja",
+  "allergenFish": "Poisson",
+
+  "conditionDiabetic": "Je suis diabétique",
+  "conditionCeliac": "Je suis cœliaque",
+  "conditionCeliacSubtitle": "Éviter strictement le gluten",
+
+  "aptitudGluten": "Gluten (maladie cœliaque)",
+  "aptitudNoNutritionInfo": "Aucune information nutritionnelle — vérifiez le sucre manuellement",
+  "aptitudHighSugar": "Teneur élevée en sucre ({value} g/100 g)",
+  "@aptitudHighSugar": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  }
 }

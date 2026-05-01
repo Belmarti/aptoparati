@@ -1,6 +1,163 @@
 {
   "@@locale": "es",
+
   "appTitle": "AptoParaTi",
   "welcomeMessage": "Bienvenido a AptoParaTi",
-  "loginTagline": "Tu guía de alimentación"
+  "loginTagline": "Tu guía de alimentación",
+
+  "emailLabel": "Correo electrónico",
+  "emailHint": "ejemplo@correo.com",
+  "passwordLabel": "Contraseña",
+  "passwordHint": "••••••••",
+  "cancelButton": "Cancelar",
+  "sendButton": "Enviar",
+  "continueButton": "Continuar",
+  "noDataAvailable": "No disponible",
+  "healthProfileTitle": "Perfil de Salud",
+  "allergiesAndIntolerances": "Alergias e Intolerancias",
+  "productNameUnknown": "Producto sin nombre",
+  "errorConnection": "Error de conexión. Comprueba tu red.",
+
+  "loginForgotPassword": "¿Olvidaste tu contraseña?",
+  "loginButton": "Iniciar Sesión",
+  "loginOrContinueWith": "o continúa con",
+  "loginWithGoogle": "Continuar con Google",
+  "loginNoAccount": "¿No tienes cuenta? ",
+  "loginRegisterLink": "Regístrate",
+  "loginErrorEmailPasswordEmpty": "Por favor, ingresa tu correo y contraseña",
+  "loginErrorGoogle": "Error al iniciar sesión con Google. Inténtalo de nuevo.",
+  "loginErrorGeneric": "Error al iniciar sesión",
+  "loginErrorUserNotFound": "No se encontró un usuario con ese correo.",
+  "loginErrorWrongPassword": "Contraseña incorrecta.",
+  "loginErrorInvalidEmail": "El correo no es válido.",
+
+  "resetPasswordTitle": "Restablecer contraseña",
+  "resetPasswordDescription": "Te enviaremos un correo para restablecer tu contraseña.",
+  "resetPasswordEmptyEmail": "Introduce tu correo electrónico.",
+  "resetPasswordSuccessMessage": "Correo de restablecimiento enviado. Revisa tu bandeja de entrada.",
+  "resetPasswordErrorGeneric": "Error al enviar el correo",
+  "resetPasswordErrorUserNotFound": "No existe una cuenta con ese correo.",
+  "resetPasswordErrorUnexpected": "Error inesperado. Inténtalo de nuevo.",
+
+  "registerTitle": "Crea tu cuenta",
+  "registerStep": "Paso 1 de 2: Información básica",
+  "registerNameLabel": "Nombre completo",
+  "registerNameHint": "Juan Pérez",
+  "registerAlreadyHaveAccount": "¿Ya tienes cuenta? ",
+  "registerLoginLink": "Inicia Sesión",
+  "registerValidationError": "Por favor, completa todos los campos",
+
+  "healthProfileQuestion": "¿Tienes alguna restricción?",
+  "healthProfileDescription": "Configura tu perfil para que podamos decirte qué productos son aptos para ti.",
+  "healthProfileFinishButton": "Finalizar Registro",
+  "healthProfileAccountCreated": "Cuenta creada con éxito",
+  "healthProfileEditTitle": "Modifica tus datos",
+  "healthProfileEditDescription": "Actualiza tu perfil para recibir recomendaciones precisas.",
+  "healthProfileSaveButton": "Guardar Cambios",
+  "healthProfileSaveSuccess": "Cambios guardados correctamente",
+  "healthProfileSaveError": "Error al guardar cambios",
+
+  "homeDefaultUser": "Usuario",
+  "homeGreeting": "Hola, {name}",
+  "@homeGreeting": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "homeProductNotFound": "Producto no encontrado (código: {code})",
+  "@homeProductNotFound": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "homeProductApiError": "Error al consultar el producto. Comprueba tu conexión.",
+  "homeCameraAlreadyActive": "La cámara ya está activa para escanear",
+
+  "configTitle": "Configuración",
+  "configSubtitle": "Tu perfil de configuración",
+  "configHealthProfileSubtitle": "Condiciones médicas y alergias",
+  "configAccessibilityTitle": "Accesibilidad",
+  "configLowVisionTitle": "Modo baja visión",
+  "configLowVisionSubtitle": "Aumenta el contraste y el tamaño del texto",
+  "configLanguageTitle": "Idioma",
+  "configSignOut": "Salir",
+  "configLanguageSpanish": "Español",
+  "configLanguageEnglish": "Inglés",
+  "configLanguageFrench": "Francés",
+
+  "dashboardSearch": "Buscar",
+  "dashboardRecents": "Recientes",
+
+  "cameraUnavailable": "Cámara no disponible",
+  "cameraScanInstruction": "Escanea el código de barras",
+
+  "productIngredients": "Ingredientes",
+  "productIncompatibleLabel": "Incompatible contigo",
+  "productAllergenNotAffecting": "Alérgeno (no te afecta)",
+  "productNutritionTitle": "Información nutricional",
+  "productNutritionPer100": "Por 100 g / 100 ml",
+  "productNutritionEnergy": "Energía",
+  "productNutritionFat": "Grasas",
+  "productNutritionSaturatedFat": "  de las cuales saturadas",
+  "productNutritionCarbs": "Hidratos de carbono",
+  "productNutritionSugars": "  de los cuales azúcares",
+  "productNutritionFiber": "Fibra",
+  "productNutritionProtein": "Proteínas",
+  "productNutritionSalt": "Sal",
+  "productApt": "Apto para ti",
+  "productNotApt": "No apto para ti",
+  "productIncompatibleProfile": "Incompatible con tu perfil:",
+
+  "searchTitle": "Buscar producto",
+  "searchInstruction": "Introduce el código de barras del producto",
+  "searchHint": "Ej: 8480017513753",
+  "searchEmptyState": "Introduce el código y pulsa buscar",
+  "searchEmptyCodeError": "Introduce un código de barras",
+  "searchProductNotFound": "Producto no encontrado para ese código",
+
+  "recentScansTitle": "Escaneos recientes",
+  "recentScansLoadError": "Error al cargar los escaneos",
+  "recentScansEmpty": "Aún no has escaneado ningún producto",
+
+  "timeNow": "Ahora mismo",
+  "timeMinutesAgo": "Hace {minutes} min",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "timeHoursAgo": "Hace {hours} h",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "timeYesterday": "Ayer",
+  "timeDaysAgo": "Hace {days} días",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+
+  "allergenNuts": "Frutos secos",
+  "allergenLactose": "Lactosa",
+  "allergenLactoseMilk": "Lactosa / Leche",
+  "allergenShellfish": "Marisco",
+  "allergenEgg": "Huevo",
+  "allergenSoy": "Soja",
+  "allergenFish": "Pescado",
+
+  "conditionDiabetic": "Soy diabético",
+  "conditionCeliac": "Soy celíaco",
+  "conditionCeliacSubtitle": "Evitar gluten estrictamente",
+
+  "aptitudGluten": "Gluten (enfermedad celíaca)",
+  "aptitudNoNutritionInfo": "Sin información nutricional — verifica el azúcar manualmente",
+  "aptitudHighSugar": "Alto contenido en azúcar ({value} g/100 g)",
+  "@aptitudHighSugar": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/aptitud_service.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Palabras clave por tag OFF para resaltar ingredientes en el texto.
 const Map<String, List<String>> _keywordsPorTag = {
@@ -22,7 +23,8 @@ Future<void> showProductResultCard(
   required Product product,
   required Map<String, dynamic> healthProfile,
 }) async {
-  final resultado = AptitudService.evaluar(product, healthProfile);
+  final l10n = AppLocalizations.of(context)!;
+  final resultado = AptitudService.evaluar(product, healthProfile, l10n);
 
   await showModalBottomSheet<void>(
     context: context,
@@ -42,6 +44,8 @@ class _ProductResultSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.36,
       minChildSize: 0.30,
@@ -50,19 +54,18 @@ class _ProductResultSheet extends StatelessWidget {
       snapSizes: const [0.36, 0.93],
       builder: (context, scrollController) {
         // Stack de dos capas para eliminar el sangrado de cámara en esquinas:
-        // - ColoredBox: rellena el rectángulo completo (esquinas incluidas) con blanco
+        // - ColoredBox: rellena el rectángulo completo (esquinas incluidas)
         // - ClipRRect: recorta el contenido a la forma redondeada
-        // Así las esquinas redondeadas muestran blanco en lugar de la cámara detrás.
         return Stack(
           children: [
-            const ColoredBox(color: Colors.white),
+            ColoredBox(color: colorScheme.surface),
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(24)),
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Container(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +77,7 @@ class _ProductResultSheet extends StatelessWidget {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -154,11 +157,11 @@ class _SeccionIngredientes extends StatelessWidget {
   }
 
   /// Construye un [TextSpan] con las keywords incompatibles resaltadas en rojo.
-  TextSpan _buildTextoResaltado(String texto) {
+  TextSpan _buildTextoResaltado(String texto, Color onSurface) {
     if (tagsIncompatibles.isEmpty) {
       return TextSpan(
         text: texto,
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        style: TextStyle(fontSize: 13, color: onSurface),
       );
     }
 
@@ -173,7 +176,7 @@ class _SeccionIngredientes extends StatelessWidget {
     if (keywords.isEmpty) {
       return TextSpan(
         text: texto,
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        style: TextStyle(fontSize: 13, color: onSurface),
       );
     }
 
@@ -189,7 +192,7 @@ class _SeccionIngredientes extends StatelessWidget {
       if (match.start > cursor) {
         spans.add(TextSpan(
           text: texto.substring(cursor, match.start),
-          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          style: TextStyle(fontSize: 13, color: onSurface),
         ));
       }
       spans.add(TextSpan(
@@ -206,7 +209,7 @@ class _SeccionIngredientes extends StatelessWidget {
     if (cursor < texto.length) {
       spans.add(TextSpan(
         text: texto.substring(cursor),
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        style: TextStyle(fontSize: 13, color: onSurface),
       ));
     }
     return TextSpan(children: spans);
@@ -214,6 +217,8 @@ class _SeccionIngredientes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final ingredientes = product.ingredients;
     final textoPlano = product.ingredientsText;
 
@@ -223,16 +228,16 @@ class _SeccionIngredientes extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Ingredientes',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        Text(
+          l10n.productIngredients,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
 
         if (sinDatos)
           Text(
-            'No disponible',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            l10n.noDataAvailable,
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           )
 
         // Lista estructurada (cada Ingredient como fila)
@@ -254,8 +259,8 @@ class _SeccionIngredientes extends StatelessWidget {
                 bg = const Color(0x1AFF8F00);
                 fg = const Color(0xFFE65100);
               } else {
-                bg = Colors.grey.shade100;
-                fg = Colors.black87;
+                bg = colorScheme.surfaceContainerHighest;
+                fg = colorScheme.onSurface;
               }
 
               return Container(
@@ -268,7 +273,7 @@ class _SeccionIngredientes extends StatelessWidget {
                         ? const Color(0x4DE53935)
                         : esAlergenoGeneral
                             ? const Color(0x4DFF8F00)
-                            : Colors.grey.shade300,
+                            : colorScheme.outlineVariant,
                   ),
                 ),
                 child: Text(
@@ -288,7 +293,7 @@ class _SeccionIngredientes extends StatelessWidget {
         // Fallback: texto plano con keywords resaltadas
         else if (textoPlano != null)
           RichText(
-            text: _buildTextoResaltado(textoPlano),
+            text: _buildTextoResaltado(textoPlano, colorScheme.onSurface),
           ),
 
         if (!sinDatos && tagsIncompatibles.isNotEmpty) ...[
@@ -303,7 +308,7 @@ class _SeccionIngredientes extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text('Incompatible contigo', style: TextStyle(fontSize: 11, color: Color(0xFFC62828))),
+              Text(l10n.productIncompatibleLabel, style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
               const SizedBox(width: 12),
               Container(
                 width: 12, height: 12,
@@ -314,7 +319,7 @@ class _SeccionIngredientes extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text('Alérgeno (no te afecta)', style: TextStyle(fontSize: 11, color: Color(0xFFE65100))),
+              Text(l10n.productAllergenNotAffecting, style: const TextStyle(fontSize: 11, color: Color(0xFFE65100))),
             ],
           ),
         ],
@@ -334,46 +339,49 @@ class _TablaNutricional extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (nutriments == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Información nutricional',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          Text(l10n.productNutritionTitle,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          Text('No disponible',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+          Text(l10n.noDataAvailable,
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
         ],
       );
     }
 
     final filas = <_FilaNutriente>[
-      _FilaNutriente('Energía', _formatEnergy(), negrita: true),
-      _FilaNutriente('Grasas', _fmt(Nutrient.fat), negrita: true),
-      _FilaNutriente('  de las cuales saturadas', _fmt(Nutrient.saturatedFat)),
-      _FilaNutriente('Hidratos de carbono', _fmt(Nutrient.carbohydrates), negrita: true),
-      _FilaNutriente('  de los cuales azúcares', _fmt(Nutrient.sugars)),
-      _FilaNutriente('Fibra', _fmt(Nutrient.fiber)),
-      _FilaNutriente('Proteínas', _fmt(Nutrient.proteins), negrita: true),
-      _FilaNutriente('Sal', _fmt(Nutrient.salt)),
+      _FilaNutriente(l10n.productNutritionEnergy, _formatEnergy(), negrita: true),
+      _FilaNutriente(l10n.productNutritionFat, _fmt(Nutrient.fat), negrita: true),
+      _FilaNutriente(l10n.productNutritionSaturatedFat, _fmt(Nutrient.saturatedFat)),
+      _FilaNutriente(l10n.productNutritionCarbs, _fmt(Nutrient.carbohydrates), negrita: true),
+      _FilaNutriente(l10n.productNutritionSugars, _fmt(Nutrient.sugars)),
+      _FilaNutriente(l10n.productNutritionFiber, _fmt(Nutrient.fiber)),
+      _FilaNutriente(l10n.productNutritionProtein, _fmt(Nutrient.proteins), negrita: true),
+      _FilaNutriente(l10n.productNutritionSalt, _fmt(Nutrient.salt)),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Información nutricional',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        Text(
+          l10n.productNutritionTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
-          'Por 100 g / 100 ml',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          l10n.productNutritionPer100,
+          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -382,7 +390,9 @@ class _TablaNutricional extends StatelessWidget {
               final fila = entry.value;
               return Container(
                 decoration: BoxDecoration(
-                  color: i.isEven ? Colors.grey.shade50 : Colors.white,
+                  color: i.isEven
+                      ? colorScheme.surfaceContainerHighest
+                      : colorScheme.surface,
                   borderRadius: BorderRadius.vertical(
                     top: i == 0 ? const Radius.circular(10) : Radius.zero,
                     bottom: i == filas.length - 1
@@ -402,7 +412,7 @@ class _TablaNutricional extends StatelessWidget {
                         fontWeight: fila.negrita
                             ? FontWeight.w600
                             : FontWeight.normal,
-                        color: Colors.black87,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     Text(
@@ -413,8 +423,8 @@ class _TablaNutricional extends StatelessWidget {
                             ? FontWeight.w600
                             : FontWeight.normal,
                         color: fila.valor == '—'
-                            ? Colors.grey.shade400
-                            : Colors.black87,
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -461,13 +471,15 @@ class _ImagenProducto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.hardEdge,
       child: imageUrl != null
@@ -487,7 +499,7 @@ class _PlaceholderImagen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Icon(Icons.image_not_supported_outlined,
-        size: 36, color: Colors.grey.shade400);
+        size: 36, color: Theme.of(context).colorScheme.onSurfaceVariant);
   }
 }
 
@@ -497,7 +509,9 @@ class _DatosBasicos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nombre = product.productName ?? 'Producto sin nombre';
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final nombre = product.productName ?? l10n.productNameUnknown;
     final marca = product.brands ?? '';
     final cantidad = product.quantity ?? '';
 
@@ -513,14 +527,12 @@ class _DatosBasicos extends StatelessWidget {
         if (marca.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(marca,
-              style:
-                  TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
         ],
         if (cantidad.isNotEmpty) ...[
           const SizedBox(height: 2),
           Text(cantidad,
-              style:
-                  TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
         ],
       ],
     );
@@ -533,6 +545,7 @@ class _BannerAptitud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isApt = resultado.isApt;
     return Container(
       width: double.infinity,
@@ -556,7 +569,7 @@ class _BannerAptitud extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            isApt ? 'Apto para ti' : 'No apto para ti',
+            isApt ? l10n.productApt : l10n.productNotApt,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
@@ -576,15 +589,18 @@ class _ListaMotivos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Incompatible con tu perfil:',
+          l10n.productIncompatibleProfile,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),

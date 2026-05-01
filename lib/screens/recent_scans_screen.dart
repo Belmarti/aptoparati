@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/user_service.dart';
 import '../widgets/product_result_card.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla de escaneos recientes.
 /// Muestra los últimos 5 productos escaneados por el usuario,
@@ -65,48 +66,48 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
       } else {
         setState(() => _loadingId = null);
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Producto no encontrado (código: $barcode)')),
+            SnackBar(content: Text(l10n.homeProductNotFound(barcode))),
           );
         }
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loadingId = null);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error de conexión. Comprueba tu red.'),
-        ),
+        SnackBar(content: Text(l10n.errorConnection)),
       );
     }
   }
 
-  /// Formatea la fecha de escaneo como tiempo relativo en español.
-  String _tiempoRelativo(DateTime fecha) {
+  /// Formatea la fecha de escaneo como tiempo relativo localizado.
+  String _tiempoRelativo(AppLocalizations l10n, DateTime fecha) {
     final diff = DateTime.now().difference(fecha);
-    if (diff.inMinutes < 1) return 'Ahora mismo';
-    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
-    if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
-    if (diff.inDays == 1) return 'Ayer';
-    return 'Hace ${diff.inDays} días';
+    if (diff.inMinutes < 1) return l10n.timeNow;
+    if (diff.inMinutes < 60) return l10n.timeMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.timeHoursAgo(diff.inHours);
+    if (diff.inDays == 1) return l10n.timeYesterday;
+    return l10n.timeDaysAgo(diff.inDays);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Escaneos recientes',
-          style: TextStyle(
-            color: Colors.black87,
+        title: Text(
+          l10n.recentScansTitle,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -129,11 +130,11 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.error_outline,
-                      size: 48, color: Colors.grey.shade400),
+                      size: 48, color: colorScheme.onSurfaceVariant),
                   const SizedBox(height: 12),
                   Text(
-                    'Error al cargar los escaneos',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    l10n.recentScansLoadError,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -149,13 +150,13 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.history_rounded,
-                      size: 72, color: Colors.grey.shade200),
+                      size: 72, color: colorScheme.outlineVariant),
                   const SizedBox(height: 16),
                   Text(
-                    'Aún no has escaneado ningún producto',
+                    l10n.recentScansEmpty,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade400,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -171,7 +172,7 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
               final scan = scans[index];
               final scanId = scan['id'] as String;
               final barcode = scan['barcode'] as String? ?? '';
-              final name = scan['name'] as String? ?? 'Producto sin nombre';
+              final name = scan['name'] as String? ?? l10n.productNameUnknown;
               final imgUrl = scan['img_url'] as String? ?? '';
 
               // scanned_at puede ser null si el serverTimestamp aún no se resolvió
@@ -185,7 +186,7 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
                 name: name,
                 barcode: barcode,
                 imgUrl: imgUrl,
-                tiempoRelativo: fecha != null ? _tiempoRelativo(fecha) : '',
+                tiempoRelativo: fecha != null ? _tiempoRelativo(l10n, fecha) : '',
                 isLoading: isLoading,
                 onTap: isLoading ? null : () => _abrirProducto(scanId, barcode),
               );
@@ -220,8 +221,10 @@ class _ScanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Material(
-      color: Colors.white,
+      color: colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -230,7 +233,7 @@ class _ScanCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: Row(
             children: [
@@ -239,9 +242,9 @@ class _ScanCard extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 clipBehavior: Clip.hardEdge,
                 child: imgUrl.isNotEmpty
@@ -262,10 +265,10 @@ class _ScanCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -275,7 +278,7 @@ class _ScanCard extends StatelessWidget {
                       barcode,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: colorScheme.onSurfaceVariant,
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -285,7 +288,7 @@ class _ScanCard extends StatelessWidget {
                         tiempoRelativo,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade400,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -301,11 +304,11 @@ class _ScanCard extends StatelessWidget {
                 child: isLoading
                     ? CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Theme.of(context).primaryColor,
+                        color: colorScheme.primary,
                       )
                     : Icon(
                         Icons.chevron_right_rounded,
-                        color: Colors.grey.shade400,
+                        color: colorScheme.onSurfaceVariant,
                       ),
               ),
             ],
@@ -324,7 +327,7 @@ class _PlaceholderImg extends StatelessWidget {
     return Icon(
       Icons.image_not_supported_outlined,
       size: 28,
-      color: Colors.grey.shade400,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
   }
 }

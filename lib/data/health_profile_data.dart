@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Representa un alérgeno disponible para seleccionar en el perfil de salud.
 /// [key] es la clave que se guarda en Firestore.
-/// [label] es el texto que se muestra en la UI (español).
+/// [label] es el texto de respaldo en español (no usar directamente en UI).
 class Allergen {
   final String key;
   final String label;
@@ -12,8 +13,8 @@ class Allergen {
 
 /// Representa una condición médica configurable en el perfil de salud.
 /// [key] es la clave que se guarda en Firestore.
-/// [label] es el texto principal que se muestra en la UI (español).
-/// [subtitle] es una descripción opcional que aparece bajo el título.
+/// [label] es el texto de respaldo en español (no usar directamente en UI).
+/// [subtitle] es una descripción opcional de respaldo.
 /// [icon] es el icono que acompaña al switch.
 class HealthCondition {
   final String key;
@@ -53,3 +54,33 @@ const List<HealthCondition> kHealthConditions = [
     icon: Icons.no_meals_outlined,
   ),
 ];
+
+/// Devuelve la etiqueta localizada del alérgeno según su clave de Firestore.
+String localizedAllergenLabel(AppLocalizations l10n, String key) {
+  switch (key) {
+    case 'nuts':      return l10n.allergenNuts;
+    case 'lactose':   return l10n.allergenLactose;
+    case 'shellfish': return l10n.allergenShellfish;
+    case 'egg':       return l10n.allergenEgg;
+    case 'soy':       return l10n.allergenSoy;
+    case 'fish':      return l10n.allergenFish;
+    default:          return key;
+  }
+}
+
+/// Devuelve la etiqueta localizada de la condición médica según su clave de Firestore.
+String localizedConditionLabel(AppLocalizations l10n, String key) {
+  switch (key) {
+    case 'is_diabetic':       return l10n.conditionDiabetic;
+    case 'has_celiac_disease': return l10n.conditionCeliac;
+    default:                  return key;
+  }
+}
+
+/// Devuelve el subtítulo localizado de la condición médica, o null si no tiene.
+String? localizedConditionSubtitle(AppLocalizations l10n, String key) {
+  switch (key) {
+    case 'has_celiac_disease': return l10n.conditionCeliacSubtitle;
+    default:                   return null;
+  }
+}

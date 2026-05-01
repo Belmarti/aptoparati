@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/health_profile_data.dart';
 import '../services/user_service.dart';
 import '../widgets/action_button.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla de edición del perfil de salud del usuario.
 /// Permite modificar condiciones médicas y alérgenos.
@@ -57,6 +58,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
   /// Guarda los cambios del perfil de salud en Firestore a través de UserService.
   /// Preserva el campo custom_restrictions para no sobreescribirlo.
   Future<void> _saveChanges() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -84,14 +86,14 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cambios guardados correctamente')),
+          SnackBar(content: Text(l10n.healthProfileSaveSuccess)),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar cambios')),
+          SnackBar(content: Text(l10n.healthProfileSaveError)),
         );
       }
     } finally {
@@ -101,14 +103,14 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil de Salud'),
+        title: Text(l10n.healthProfileTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -116,17 +118,17 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
               padding: const EdgeInsets.all(24.0),
               children: [
                 Text(
-                  'Modifica tus datos',
+                  l10n.healthProfileEditTitle,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Actualiza tu perfil para recibir recomendaciones precisas.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  l10n.healthProfileEditDescription,
+                  style: TextStyle(fontSize: 16, color: colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 32),
 
@@ -134,8 +136,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 ...kHealthConditions.map((condition) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildSwitchTile(
-                    title: condition.label,
-                    subtitle: condition.subtitle,
+                    title: localizedConditionLabel(l10n, condition.key),
+                    subtitle: localizedConditionSubtitle(l10n, condition.key),
                     value: _conditions[condition.key] ?? false,
                     onChanged: (val) =>
                         setState(() => _conditions[condition.key] = val),
@@ -146,11 +148,11 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                 const SizedBox(height: 16),
 
                 Text(
-                  'Alergias e Intolerancias',
+                  l10n.allergiesAndIntolerances,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -162,14 +164,14 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                   children: kAllergens.map((allergen) {
                     final selected = _allergenSelected[allergen.key] ?? false;
                     return FilterChip(
-                      label: Text(allergen.label),
+                      label: Text(localizedAllergenLabel(l10n, allergen.key)),
                       selected: selected,
                       onSelected: (val) =>
                           setState(() => _allergenSelected[allergen.key] = val),
-                      selectedColor: primaryColor.withValues(alpha: 0.2),
-                      checkmarkColor: primaryColor,
+                      selectedColor: colorScheme.primary.withValues(alpha: 0.2),
+                      checkmarkColor: colorScheme.primary,
                       labelStyle: TextStyle(
-                        color: selected ? primaryColor : Colors.black87,
+                        color: selected ? colorScheme.primary : colorScheme.onSurface,
                         fontWeight:
                             selected ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -179,7 +181,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
                 const SizedBox(height: 48),
 
-                ActionButton(text: 'Guardar Cambios', onPressed: _saveChanges),
+                ActionButton(text: l10n.healthProfileSaveButton, onPressed: _saveChanges),
               ],
             ),
     );
@@ -198,10 +200,10 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: value ? colorScheme.primary : Colors.grey.shade300,
+          color: value ? colorScheme.primary : colorScheme.outlineVariant,
           width: value ? 2.0 : 1.0,
         ),
         boxShadow: value
@@ -219,13 +221,13 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
           title,
           style: TextStyle(
             fontWeight: value ? FontWeight.bold : FontWeight.normal,
-            color: value ? colorScheme.primary : Colors.black87,
+            color: value ? colorScheme.primary : colorScheme.onSurface,
           ),
         ),
         subtitle: subtitle != null ? Text(subtitle) : null,
         value: value,
         onChanged: onChanged,
-        secondary: Icon(icon, color: value ? colorScheme.primary : Colors.grey),
+        secondary: Icon(icon, color: value ? colorScheme.primary : colorScheme.onSurfaceVariant),
         activeThumbColor: colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

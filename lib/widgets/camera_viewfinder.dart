@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 class CameraViewfinder extends StatefulWidget {
   final void Function(String)? onScan;
@@ -62,6 +63,8 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -88,7 +91,7 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    error.errorDetails?.message ?? 'Cámara no disponible',
+                    error.errorDetails?.message ?? l10n.cameraUnavailable,
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -122,7 +125,7 @@ class _CameraViewfinderState extends State<CameraViewfinder> {
         Positioned(
           bottom: 100,
           child: Text(
-            'Escanea el código de barras',
+            l10n.cameraScanInstruction,
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,

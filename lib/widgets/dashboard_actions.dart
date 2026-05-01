@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 class DashboardActions extends StatelessWidget {
   final VoidCallback onSearchTap;
@@ -14,11 +15,14 @@ class DashboardActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 20,
@@ -31,11 +35,11 @@ class DashboardActions extends StatelessWidget {
         children: [
           _ActionButton(
             icon: Icons.search_rounded,
-            label: 'Buscar',
+            label: l10n.dashboardSearch,
             onTap: onSearchTap,
           ),
 
-          // Scan Button (Featured)
+          // Botón de escaneo central (destacado)
           GestureDetector(
             onTap: onScanTap,
             child: Container(
@@ -62,7 +66,7 @@ class DashboardActions extends StatelessWidget {
 
           _ActionButton(
             icon: Icons.history_rounded,
-            label: 'Recientes',
+            label: l10n.dashboardRecents,
             onTap: onHistoryTap,
           ),
         ],
@@ -84,6 +88,8 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -92,10 +98,10 @@ class _ActionButton extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.grey[800], size: 22),
+            child: Icon(icon, color: colorScheme.onSurface, size: 22),
           ),
           const SizedBox(height: 5),
           Text(
@@ -103,7 +109,7 @@ class _ActionButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],

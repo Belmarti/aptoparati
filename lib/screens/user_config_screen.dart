@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../services/user_service.dart';
+import '../services/theme_service.dart';
 import 'health_profile_screen.dart';
 import 'login_screen.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla hub de configuración del usuario.
 /// Agrupa las secciones: perfil de salud, accesibilidad e idioma.
@@ -14,9 +17,6 @@ class UserConfigScreen extends StatefulWidget {
 }
 
 class _UserConfigScreenState extends State<UserConfigScreen> {
-  // Opciones de accesibilidad (sin backend por ahora)
-  bool _lowVisionMode = false;
-
   // Idioma seleccionado (sin backend por ahora)
   String _selectedLanguage = 'es';
 
@@ -31,40 +31,40 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
+    final themeService = context.watch<ThemeService>();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración'),
+        title: Text(l10n.configTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black,
       ),
-      backgroundColor: Colors.grey[100],
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           // Cabecera con avatar y nombre/email del usuario
-          _buildUserHeader(colorScheme),
+          _buildUserHeader(colorScheme, l10n),
           const SizedBox(height: 28),
 
           // Card: Perfil de salud
-          _buildHealthProfileCard(colorScheme),
+          _buildHealthProfileCard(colorScheme, l10n),
           const SizedBox(height: 16),
 
           // Card: Accesibilidad
-          _buildAccessibilityCard(colorScheme),
+          _buildAccessibilityCard(colorScheme, l10n, themeService),
           const SizedBox(height: 16),
 
           // Card: Idioma
-          _buildLanguageCard(colorScheme),
+          _buildLanguageCard(colorScheme, l10n),
         ],
       ),
     );
   }
 
   /// Cabecera con avatar circular y nombre/email del usuario.
-  Widget _buildUserHeader(ColorScheme colorScheme) {
+  Widget _buildUserHeader(ColorScheme colorScheme, AppLocalizations l10n) {
     return Row(
       children: [
         CircleAvatar(
@@ -89,10 +89,10 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                   Expanded(
                     child: Text(
                       _displayName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: colorScheme.onSurface,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -101,20 +101,24 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                   TextButton.icon(
                     onPressed: _signOut,
                     icon: const Icon(Icons.logout, size: 18),
-                    label: const Text('Salir', style: TextStyle(fontSize: 16)),
+                    label: Text(l10n.configSignOut),
                     style: TextButton.styleFrom(
                       foregroundColor: const Color.fromARGB(255, 231, 81, 78),
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      // Fija el tamaño de fuente para que el tema de baja visión
+                      // (fontSize 21, minimumSize 48dp) no infle este botón
+                      // y desborde el Row del header.
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                'Tu perfil de configuración',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                l10n.configSubtitle,
+                style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -136,11 +140,10 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
   }
 
   /// Card navegable hacia la pantalla de edición del perfil de salud.
-  Widget _buildHealthProfileCard(ColorScheme colorScheme) {
+  Widget _buildHealthProfileCard(ColorScheme colorScheme, AppLocalizations l10n) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
       child: ListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -152,15 +155,15 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
           ),
           child: Icon(Icons.favorite_outline, color: colorScheme.primary),
         ),
-        title: const Text(
-          'Perfil de Salud',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        title: Text(
+          l10n.healthProfileTitle,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
-          'Condiciones médicas y alergias',
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          l10n.configHealthProfileSubtitle,
+          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
         ),
-        trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+        trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const HealthProfileScreen()),
@@ -170,12 +173,11 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
   }
 
   /// Card de accesibilidad con switch para modo baja visión.
-  /// Sin backend — solo estado local por ahora.
-  Widget _buildAccessibilityCard(ColorScheme colorScheme) {
+  /// El cambio se aplica de forma inmediata vía [ThemeService] + Provider.
+  Widget _buildAccessibilityCard(ColorScheme colorScheme, AppLocalizations l10n, ThemeService themeService) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -194,9 +196,9 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                       color: colorScheme.primary),
                 ),
                 const SizedBox(width: 16),
-                const Text(
-                  'Accesibilidad',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                Text(
+                  l10n.configAccessibilityTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ],
             ),
@@ -205,16 +207,16 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
           SwitchListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            title: const Text(
-              'Modo baja visión',
-              style: TextStyle(fontSize: 15),
+            title: Text(
+              l10n.configLowVisionTitle,
+              style: const TextStyle(fontSize: 15),
             ),
             subtitle: Text(
-              'Aumenta el contraste y el tamaño del texto',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              l10n.configLowVisionSubtitle,
+              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
-            value: _lowVisionMode,
-            onChanged: (val) => setState(() => _lowVisionMode = val),
+            value: themeService.isLowVision,
+            onChanged: (_) => themeService.toggle(),
             activeColor: colorScheme.primary,
           ),
           const SizedBox(height: 4),
@@ -225,17 +227,16 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
 
   /// Card de selección de idioma (español, inglés, francés).
   /// Sin backend — solo estado local por ahora.
-  Widget _buildLanguageCard(ColorScheme colorScheme) {
+  Widget _buildLanguageCard(ColorScheme colorScheme, AppLocalizations l10n) {
     final languages = [
-      ('es', 'Español'),
-      ('en', 'Inglés'),
-      ('fr', 'Francés'),
+      ('es', l10n.configLanguageSpanish),
+      ('en', l10n.configLanguageEnglish),
+      ('fr', l10n.configLanguageFrench),
     ];
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -254,9 +255,9 @@ class _UserConfigScreenState extends State<UserConfigScreen> {
                       color: colorScheme.primary),
                 ),
                 const SizedBox(width: 16),
-                const Text(
-                  'Idioma',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                Text(
+                  l10n.configLanguageTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ],
             ),

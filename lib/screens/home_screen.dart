@@ -9,6 +9,7 @@ import 'package:openfoodfacts/openfoodfacts.dart';
 import 'user_config_screen.dart';
 import 'search_screen.dart';
 import 'recent_scans_screen.dart';
+import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla principal de la aplicación tras el login.
 /// Muestra la cámara de escaneo a pantalla completa con un header flotante
@@ -92,10 +93,11 @@ class _HomeScreenState extends State<HomeScreen> {
         // Guardar en historial de recientes (fire & forget, no bloquea la UI)
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) {
+          final l10n = AppLocalizations.of(context)!;
           UserService.instance.saveRecentScan(
             uid,
             barcode: code,
-            name: result.product!.productName ?? 'Producto sin nombre',
+            name: result.product!.productName ?? l10n.productNameUnknown,
             imgUrl: result.product!.imageFrontSmallUrl ?? '',
           );
         }
@@ -107,16 +109,18 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else {
         if (result.result?.id == ProductResultV3.resultProductNotFound) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Producto no encontrado (código: $code)')),
+            SnackBar(content: Text(l10n.homeProductNotFound(code))),
           );
         }
         setState(() => _isFetchingProduct = false);
       }
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al consultar el producto. Comprueba tu conexión.')),
+        SnackBar(content: Text(l10n.homeProductApiError)),
       );
       setState(() => _isFetchingProduct = false);
     }
@@ -137,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ///    por el gestor de ciclo de vida de MobileScanner (isRunning == false).
   /// 3. try/catch como última línea de defensa ante la race condition donde
   ///    isRunning aún no refleja el inicio en curso del lifecycle handler.
-  /// 
+  ///
   Future<void> _navigateWithCameraStop(Widget screen) async {
     try {
       await _cameraController.stop();
@@ -172,20 +176,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
     final userData = UserService.instance.currentUserData;
 
     // Obtener nombre del usuario desde la caché de UserService
-    String displayName = 'Usuario';
-    String initials = 'U';
+    final defaultUser = l10n.homeDefaultUser;
+    String displayName = defaultUser;
+    String initials = defaultUser.isNotEmpty ? defaultUser[0].toUpperCase() : 'U';
 
     if (userData != null && userData['personal_info'] != null) {
-      displayName = userData['personal_info']['name'] ?? 'Usuario';
+      displayName = userData['personal_info']['name'] ?? defaultUser;
     }
 
     // Calcular inicial para el avatar: primera letra del nombre,
     // o primera letra del email como fallback
-    if (displayName != 'Usuario' && displayName.isNotEmpty) {
+    if (displayName != defaultUser && displayName.isNotEmpty) {
       initials = displayName[0].toUpperCase();
     } else if (user?.email?.isNotEmpty ?? false) {
       initials = user!.email![0].toUpperCase();
@@ -193,7 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Layout: Column — cámara ocupa espacio restante, barra inferior a su altura natural.
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           // 1. Área de cámara con header flotante encima
@@ -223,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           // Saludo con nombre del usuario
                           Text(
-                            'Hola, $displayName',
+                            l10n.homeGreeting(displayName),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -287,9 +292,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onSearchTap: () => _navigateWithCameraStop(const SearchScreen()),
               onHistoryTap: () => _navigateWithCameraStop(const RecentScansScreen()),
               onScanTap: () {
+                final l10n = AppLocalizations.of(context)!;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('La cámara ya está activa para escanear'),
+                  SnackBar(
+                    content: Text(l10n.homeCameraAlreadyActive),
                   ),
                 );
               },
