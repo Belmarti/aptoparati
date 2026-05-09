@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:aptoparati/l10n/app_localizations.dart';
 
 class DashboardActions extends StatelessWidget {
@@ -19,52 +20,36 @@ class DashboardActions extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+      padding: const EdgeInsets.fromLTRB(40, 14, 40, 20),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        boxShadow: const [
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 20,
-            offset: Offset(0, -5),
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _ActionButton(
+          _NavItem(
             icon: Icons.search_rounded,
             label: l10n.dashboardSearch,
             onTap: onSearchTap,
           ),
 
-          // Botón de escaneo central (destacado)
-          GestureDetector(
-            onTap: onScanTap,
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.barcode_reader,
-                color: Colors.white,
-                size: 26,
-              ),
-            ),
-          ),
+          // Botón de escaneo central
+          _ScanButton(onTap: onScanTap),
 
-          _ActionButton(
+          _NavItem(
             icon: Icons.history_rounded,
             label: l10n.dashboardRecents,
             onTap: onHistoryTap,
@@ -75,12 +60,16 @@ class DashboardActions extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Botón lateral (búsqueda / historial)
+// ---------------------------------------------------------------------------
+
+class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
-  const _ActionButton({
+  const _NavItem({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -89,30 +78,74 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: colorScheme.onSurfaceVariant, size: 26),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            child: Icon(icon, color: colorScheme.onSurface, size: 22),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Botón central de escaneo
+// ---------------------------------------------------------------------------
+
+class _ScanButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ScanButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: colorScheme.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withValues(alpha: 0.45),
+              blurRadius: 20,
+              spreadRadius: 1,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: SvgPicture.asset(
+            'assets/icons/ScanIcon.svg',
+            width: 34,
+            height: 34,
+            // onPrimary = blanco en modo estándar, negro en baja visión
+            colorFilter: ColorFilter.mode(
+              colorScheme.onPrimary,
+              BlendMode.srcIn,
             ),
           ),
-        ],
+        ),
       ),
     );
   }

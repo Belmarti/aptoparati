@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/user_service.dart';
 import '../widgets/product_result_card.dart';
+import '../widgets/dashboard_actions.dart';
+import 'search_screen.dart';
 import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla de escaneos recientes.
@@ -98,6 +100,14 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      bottomNavigationBar: DashboardActions(
+        onSearchTap: () => Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchScreen()),
+        ),
+        onScanTap: () => Navigator.pop(context),
+        onHistoryTap: () {},
+      ),
       appBar: AppBar(
         elevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -165,7 +175,7 @@ class _RecentScansScreenState extends State<RecentScansScreen> {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             itemCount: scans.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {

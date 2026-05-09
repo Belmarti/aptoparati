@@ -26,7 +26,7 @@ class AppThemes {
   // Fuente base ×1.5 | Botones ≥56 dp | Bordes 2–3 px | WCAG AA
   // ─────────────────────────────────────────────────────────────
   static ThemeData get themeBajaVision {
-    const Color primario   = Color(0xFFFFD700); // amarillo — ratio >11:1 sobre negro
+    const Color primario   = Color(0xFF00FFBB); // cian-menta — alto contraste sobre negro
     const Color fondo      = Colors.black;
     const Color superficie = Color(0xFF1A1A1A);
     const Color texto      = Colors.white;
@@ -37,15 +37,15 @@ class AppThemes {
       brightness: Brightness.dark,
       primary: primario,
       onPrimary: Colors.black,
-      primaryContainer: Color(0xFF4A3F00),
+      primaryContainer: Color(0xFF004D3A),
       onPrimaryContainer: primario,
       secondary: primario,
       onSecondary: Colors.black,
-      secondaryContainer: Color(0xFF4A3F00),
+      secondaryContainer: Color(0xFF004D3A),
       onSecondaryContainer: primario,
       tertiary: primario,
       onTertiary: Colors.black,
-      tertiaryContainer: Color(0xFF4A3F00),
+      tertiaryContainer: Color(0xFF004D3A),
       onTertiaryContainer: primario,
       error: Color(0xFFFF6B6B),
       onError: Colors.black,
@@ -61,7 +61,7 @@ class AppThemes {
       scrim: Colors.black,
       inverseSurface: texto,
       onInverseSurface: Colors.black,
-      inversePrimary: Color(0xFF856700),
+      inversePrimary: Color(0xFF008055),
     );
 
     // Escala ×1.5 sobre los tamaños estándar de Material 3

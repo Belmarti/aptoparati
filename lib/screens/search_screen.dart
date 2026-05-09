@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/user_service.dart';
 import '../widgets/product_result_card.dart';
+import '../widgets/dashboard_actions.dart';
+import 'recent_scans_screen.dart';
 import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Pantalla de búsqueda manual por código de barras.
@@ -100,6 +102,14 @@ class _SearchScreenState extends State<SearchScreen> {
     final primaryColor = colorScheme.primary;
 
     return Scaffold(
+      bottomNavigationBar: DashboardActions(
+        onSearchTap: () {},
+        onScanTap: () => Navigator.pop(context),
+        onHistoryTap: () => Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RecentScansScreen()),
+        ),
+      ),
       appBar: AppBar(
         elevation: 0,
         surfaceTintColor: Colors.transparent,
