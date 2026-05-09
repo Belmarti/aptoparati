@@ -159,5 +159,14 @@
     "placeholders": {
       "value": { "type": "String" }
     }
-  }
+  },
+
+  "reportButton": "Signaler une erreur",
+  "reportDialogTitle": "Signaler une erreur",
+  "reportDialogDescription": "Si vous pensez que le résultat est incorrect, décrivez ce qui s'est passé.",
+  "reportReasonLabel": "Motif",
+  "reportReasonHint": "Ex : le produit est indiqué comme adapté aux diabétiques mais contient beaucoup de sucre",
+  "reportReasonEmpty": "Le motif ne peut pas être vide",
+  "reportSuccess": "Signalement envoyé ! Merci de nous aider à nous améliorer.",
+  "reportError": "Erreur lors de l'envoi du signalement. Veuillez réessayer."
 }

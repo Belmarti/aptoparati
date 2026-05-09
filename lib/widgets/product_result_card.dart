@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:openfoodfacts/openfoodfacts.dart';
 import '../services/aptitud_service.dart';
+import '../services/report_service.dart';
+import '../app_globals.dart';
 import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Palabras clave por tag OFF para resaltar ingredientes en el texto.
@@ -121,6 +123,13 @@ class _ProductResultSheet extends StatelessWidget {
 
                   // Tabla nutricional
                   _TablaNutricional(nutriments: product.nutriments),
+
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 12),
+
+                  // Botón de reporte de error
+                  _BotonReporte(barcode: product.barcode ?? ''),
                 ],
               ),
             ),
@@ -459,6 +468,124 @@ class _FilaNutriente {
   final String valor;
   final bool negrita;
   const _FilaNutriente(this.nombre, this.valor, {this.negrita = false});
+}
+
+// ---------------------------------------------------------------------------
+// Botón de reporte de error
+// ---------------------------------------------------------------------------
+
+/// Botón de texto que abre un diálogo para que el usuario reporte un error
+/// en el resultado de aptitud del producto.
+///
+/// El diálogo es completamente síncrono: devuelve el motivo introducido como
+/// String?. El envío a Firestore y el SnackBar ocurren DESPUÉS de que el
+/// diálogo esté completamente cerrado. El SnackBar se muestra a través de
+/// [scaffoldMessengerKey] (GlobalKey) para no llamar nunca a
+/// ScaffoldMessenger.of(context) desde código asíncrono.
+class _BotonReporte extends StatelessWidget {
+  final String barcode;
+  const _BotonReporte({required this.barcode});
+
+  Future<void> _abrirDialogo(BuildContext context, AppLocalizations l10n) async {
+    final controller = TextEditingController();
+
+    // El diálogo solo recoge el motivo. El botón Enviar es síncrono:
+    // devuelve el texto con Navigator.pop(razon) sin hacer ningún await.
+    final String? razon = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        String? errorTexto;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final colorScheme = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              title: Text(l10n.reportDialogTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.reportDialogDescription,
+                    style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    maxLines: 4,
+                    maxLength: 300,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: l10n.reportReasonLabel,
+                      hintText: l10n.reportReasonHint,
+                      errorText: errorTexto,
+                      alignLabelWithHint: true,
+                    ),
+                    onChanged: (_) {
+                      if (errorTexto != null) setDialogState(() => errorTexto = null);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(null),
+                  child: Text(l10n.cancelButton),
+                ),
+                FilledButton(
+                  // Handler síncrono: no hay await, no hay operaciones async aquí.
+                  onPressed: () {
+                    final texto = controller.text.trim();
+                    if (texto.isEmpty) {
+                      setDialogState(() => errorTexto = l10n.reportReasonEmpty);
+                      return;
+                    }
+                    Navigator.of(ctx).pop(texto);
+                  },
+                  child: Text(l10n.sendButton),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+
+    // El diálogo ya está completamente cerrado y eliminado del árbol.
+    if (razon == null || razon.isEmpty) return;
+
+    // Usamos scaffoldMessengerKey.currentState en lugar de
+    // ScaffoldMessenger.of(context) para no registrar ninguna dependencia
+    // sobre InheritedWidgets desde código asíncrono.
+    try {
+      await ReportService.sendReport(barcode: barcode, reason: razon);
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(l10n.reportSuccess)),
+      );
+    } catch (_) {
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(l10n.reportError)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: TextButton.icon(
+        onPressed: () => _abrirDialogo(context, l10n),
+        icon: Icon(Icons.flag_outlined, size: 16, color: colorScheme.onSurfaceVariant),
+        label: Text(
+          l10n.reportButton,
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

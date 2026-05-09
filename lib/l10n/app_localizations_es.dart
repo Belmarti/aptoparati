@@ -371,4 +371,31 @@ class AppLocalizationsEs extends AppLocalizations {
   String aptitudHighSugar(String value) {
     return 'Alto contenido en azúcar ($value g/100 g)';
   }
+
+  @override
+  String get reportButton => 'Reportar error';
+
+  @override
+  String get reportDialogTitle => 'Reportar un error';
+
+  @override
+  String get reportDialogDescription =>
+      'Si crees que el resultado es incorrecto, cuéntanos qué pasó.';
+
+  @override
+  String get reportReasonLabel => 'Motivo';
+
+  @override
+  String get reportReasonHint =>
+      'Ej: el producto aparece como apto para diabéticos pero tiene mucho azúcar';
+
+  @override
+  String get reportReasonEmpty => 'El motivo no puede estar vacío';
+
+  @override
+  String get reportSuccess =>
+      '¡Reporte enviado! Gracias por ayudarnos a mejorar.';
+
+  @override
+  String get reportError => 'Error al enviar el reporte. Inténtalo de nuevo.';
 }

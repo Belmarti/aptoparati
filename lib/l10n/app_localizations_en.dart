@@ -368,4 +368,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String aptitudHighSugar(String value) {
     return 'High sugar content ($value g/100 g)';
   }
+
+  @override
+  String get reportButton => 'Report error';
+
+  @override
+  String get reportDialogTitle => 'Report an error';
+
+  @override
+  String get reportDialogDescription =>
+      'If you think the result is incorrect, tell us what happened.';
+
+  @override
+  String get reportReasonLabel => 'Reason';
+
+  @override
+  String get reportReasonHint =>
+      'E.g.: the product appears suitable for diabetics but has a lot of sugar';
+
+  @override
+  String get reportReasonEmpty => 'The reason cannot be empty';
+
+  @override
+  String get reportSuccess => 'Report sent! Thank you for helping us improve.';
+
+  @override
+  String get reportError => 'Error sending the report. Please try again.';
 }

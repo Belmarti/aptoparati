@@ -159,5 +159,14 @@
     "placeholders": {
       "value": { "type": "String" }
     }
-  }
+  },
+
+  "reportButton": "Reportar error",
+  "reportDialogTitle": "Reportar un error",
+  "reportDialogDescription": "Si crees que el resultado es incorrecto, cuéntanos qué pasó.",
+  "reportReasonLabel": "Motivo",
+  "reportReasonHint": "Ej: el producto aparece como apto para diabéticos pero tiene mucho azúcar",
+  "reportReasonEmpty": "El motivo no puede estar vacío",
+  "reportSuccess": "¡Reporte enviado! Gracias por ayudarnos a mejorar.",
+  "reportError": "Error al enviar el reporte. Inténtalo de nuevo."
 }

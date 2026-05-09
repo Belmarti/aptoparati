@@ -8,6 +8,7 @@ import 'package:aptoparati/screens/login_screen.dart';
 import 'package:aptoparati/services/theme_service.dart';
 import 'package:aptoparati/services/locale_service.dart';
 import 'package:aptoparati/theme/app_themes.dart';
+import 'package:aptoparati/app_globals.dart';
 
 void main() async {
   // 1. Asegura que los widgets estén listos antes de usar plugins
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
     final localeService = context.watch<LocaleService>();
 
     return MaterialApp(
+      scaffoldMessengerKey: scaffoldMessengerKey,
       title: 'AptoParaTi',
       localizationsDelegates: const [
         AppLocalizations.delegate,

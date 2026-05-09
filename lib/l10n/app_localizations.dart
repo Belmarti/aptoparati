@@ -777,6 +777,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Alto contenido en azúcar ({value} g/100 g)'**
   String aptitudHighSugar(String value);
+
+  /// No description provided for @reportButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar error'**
+  String get reportButton;
+
+  /// No description provided for @reportDialogTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar un error'**
+  String get reportDialogTitle;
+
+  /// No description provided for @reportDialogDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Si crees que el resultado es incorrecto, cuéntanos qué pasó.'**
+  String get reportDialogDescription;
+
+  /// No description provided for @reportReasonLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Motivo'**
+  String get reportReasonLabel;
+
+  /// No description provided for @reportReasonHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: el producto aparece como apto para diabéticos pero tiene mucho azúcar'**
+  String get reportReasonHint;
+
+  /// No description provided for @reportReasonEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'El motivo no puede estar vacío'**
+  String get reportReasonEmpty;
+
+  /// No description provided for @reportSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Reporte enviado! Gracias por ayudarnos a mejorar.'**
+  String get reportSuccess;
+
+  /// No description provided for @reportError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al enviar el reporte. Inténtalo de nuevo.'**
+  String get reportError;
 }
 
 class _AppLocalizationsDelegate
