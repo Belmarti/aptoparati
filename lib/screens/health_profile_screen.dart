@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../data/health_profile_data.dart';
 import '../services/user_service.dart';
@@ -141,7 +142,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     value: _conditions[condition.key] ?? false,
                     onChanged: (val) =>
                         setState(() => _conditions[condition.key] = val),
-                    icon: condition.icon,
+                    iconAsset: condition.iconAsset,
                   ),
                 )),
 
@@ -194,7 +195,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     String? subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
-    required IconData icon,
+    required String iconAsset,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -227,7 +228,15 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         subtitle: subtitle != null ? Text(subtitle) : null,
         value: value,
         onChanged: onChanged,
-        secondary: Icon(icon, color: value ? colorScheme.primary : colorScheme.onSurfaceVariant),
+        secondary: SvgPicture.asset(
+          iconAsset,
+          width: 24,
+          height: 24,
+          colorFilter: ColorFilter.mode(
+            value ? colorScheme.primary : colorScheme.onSurfaceVariant,
+            BlendMode.srcIn,
+          ),
+        ),
         activeThumbColor: colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

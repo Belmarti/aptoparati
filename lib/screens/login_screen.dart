@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -353,6 +354,10 @@ class _LoginScreenState extends State<LoginScreen> {
     // Minimalist color palette
     final primaryColor = Theme.of(context).colorScheme.primary;
     final backgroundColor = Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerAsset = isDark
+        ? 'assets/images/Apto/mark/mark-dark.svg'
+        : 'assets/images/Apto/mark/mark-light.svg';
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -365,6 +370,14 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Header ilustrativo
+                SvgPicture.asset(
+                  headerAsset,
+                  height: 148,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 18),
+
                 // Logo / Title area
                 Text(
                   l10n.appTitle,

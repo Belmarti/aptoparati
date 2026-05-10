@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="56" viewBox="0 0 260 56">
+  <g transform="translate(2 4) scale(0.48)">
+    <rect x="0" y="0" width="100" height="100" rx="22.5" ry="22.5" fill="#f3ead8"></rect>
+    <path d="M 56 22 Q 68 18 70 30 Q 60 32 56 22 Z" fill="#c75c3c"></path>
+    <path d="M 53 26 Q 53 31 55 34" stroke="#2f6b3b" stroke-width="3" stroke-linecap="round" fill="none"></path>
+    <path d="M 50 36 C 28 36 22 54 28 68 C 34 82 52 84 60 76 L 60 80 L 72 80 L 72 56 C 72 42 64 36 50 36 Z M 50 48 C 60 48 62 56 60 64 C 58 72 48 72 44 66 C 40 60 42 48 50 48 Z" fill="#2f6b3b" fill-rule="evenodd"></path>
+  </g>
+  <text x="62" y="36" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="#2f6b3b" letter-spacing="-0.4">AptoParaTi</text>
+</svg>

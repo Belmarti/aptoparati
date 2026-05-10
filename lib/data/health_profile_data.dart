@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:aptoparati/l10n/app_localizations.dart';
 
 /// Representa un alérgeno disponible para seleccionar en el perfil de salud.
@@ -15,18 +14,18 @@ class Allergen {
 /// [key] es la clave que se guarda en Firestore.
 /// [label] es el texto de respaldo en español (no usar directamente en UI).
 /// [subtitle] es una descripción opcional de respaldo.
-/// [icon] es el icono que acompaña al switch.
+/// [iconAsset] es la ruta del asset SVG que acompaña al switch.
 class HealthCondition {
   final String key;
   final String label;
   final String? subtitle;
-  final IconData icon;
+  final String iconAsset;
 
   const HealthCondition({
     required this.key,
     required this.label,
     this.subtitle,
-    required this.icon,
+    required this.iconAsset,
   });
 }
 
@@ -45,13 +44,13 @@ const List<HealthCondition> kHealthConditions = [
   HealthCondition(
     key: 'is_diabetic',
     label: 'Soy diabético',
-    icon: Icons.monitor_heart_outlined,
+    iconAsset: 'assets/icons/sugar.svg',
   ),
   HealthCondition(
     key: 'has_celiac_disease',
     label: 'Soy celíaco',
     subtitle: 'Evitar gluten estrictamente',
-    icon: Icons.no_meals_outlined,
+    iconAsset: 'assets/icons/gluten.svg',
   ),
 ];
 
