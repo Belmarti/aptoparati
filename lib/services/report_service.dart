@@ -12,6 +12,7 @@ class ReportService {
   /// Lanza una excepción si el usuario no está autenticado o falla Firestore.
   static Future<void> sendReport({
     required String barcode,
+    required String productName,
     required String reason,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -21,6 +22,7 @@ class ReportService {
       'user_id': user.uid,
       'email': user.email ?? '',
       'barcode': barcode,
+      'product_name': productName,
       'reason': reason,
       'created_at': FieldValue.serverTimestamp(),
     });

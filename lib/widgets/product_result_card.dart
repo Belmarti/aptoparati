@@ -18,8 +18,6 @@ const Map<String, List<String>> _keywordsPorTag = {
 };
 
 /// Abre un bottom sheet expandible con la información del producto y su aptitud.
-/// Muestra la card de resultado y devuelve un [Future] que resuelve
-/// cuando el usuario cierra el sheet (útil para pausar el escaneo).
 Future<void> showProductResultCard(
   BuildContext context, {
   required Product product,
@@ -38,15 +36,91 @@ Future<void> showProductResultCard(
 
 // ---------------------------------------------------------------------------
 
-class _ProductResultSheet extends StatelessWidget {
+/// Sheet principal. StatefulWidget para gestionar el formulario de reporte
+/// inline (sin showDialog), eliminando cualquier conflicto con InheritedWidgets
+/// de rutas superpuestas.
+class _ProductResultSheet extends StatefulWidget {
   final Product product;
   final AptitudResult resultado;
 
   const _ProductResultSheet({required this.product, required this.resultado});
 
   @override
+  State<_ProductResultSheet> createState() => _ProductResultSheetState();
+}
+
+class _ProductResultSheetState extends State<_ProductResultSheet> {
+  // Estado del formulario de reporte
+  bool _mostrandoFormulario = false;
+  bool _enviado = false;
+  final _reportController = TextEditingController();
+  String? _reportError;
+  bool _enviando = false;
+
+  @override
+  void dispose() {
+    _reportController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviarReporte() async {
+    final l10n = AppLocalizations.of(context)!;
+    final texto = _reportController.text.trim();
+
+    if (texto.isEmpty) {
+      setState(() => _reportError = l10n.reportReasonEmpty);
+      return;
+    }
+
+    setState(() {
+      _reportError = null;
+      _enviando = true;
+    });
+
+    try {
+      await ReportService.sendReport(
+        barcode: widget.product.barcode ?? '',
+        productName: widget.product.productName ?? '',
+        reason: texto,
+      );
+      if (!mounted) return;
+      setState(() {
+        _mostrandoFormulario = false;
+        _enviado = true;
+        _enviando = false;
+        _reportController.clear();
+        _reportError = null;
+      });
+    } catch (e) {
+      debugPrint('[Reporte] Error al enviar: $e');
+      if (!mounted) return;
+      setState(() => _enviando = false);
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(l10n.reportError)),
+      );
+    }
+  }
+
+  void _abrirFormulario() {
+    setState(() {
+      _mostrandoFormulario = true;
+      _reportError = null;
+      _reportController.clear();
+    });
+  }
+
+  void _cancelarFormulario() {
+    setState(() {
+      _mostrandoFormulario = false;
+      _reportError = null;
+      _reportController.clear();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.36,
@@ -54,90 +128,218 @@ class _ProductResultSheet extends StatelessWidget {
       maxChildSize: 0.93,
       snap: true,
       snapSizes: const [0.36, 0.93],
-      builder: (context, scrollController) {
-        // Stack de dos capas para eliminar el sangrado de cámara en esquinas:
-        // - ColoredBox: rellena el rectángulo completo (esquinas incluidas)
-        // - ClipRRect: recorta el contenido a la forma redondeada
+      builder: (sheetContext, scrollController) {
         return Stack(
           children: [
             ColoredBox(color: colorScheme.surface),
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Container(
                   color: colorScheme.surface,
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Indicador de arrastre
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-
-                  // Imagen + datos básicos
-                  Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ImagenProducto(imageUrl: product.imageFrontSmallUrl),
-                      const SizedBox(width: 16),
-                      Expanded(child: _DatosBasicos(product: product)),
+                      // Indicador de arrastre
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: colorScheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+
+                      // Imagen + datos básicos
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _ImagenProducto(imageUrl: widget.product.imageFrontSmallUrl),
+                          const SizedBox(width: 16),
+                          Expanded(child: _DatosBasicos(product: widget.product)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Banner apto / no apto
+                      _BannerAptitud(resultado: widget.resultado),
+
+                      if (!widget.resultado.isApt) ...[
+                        const SizedBox(height: 16),
+                        _ListaMotivos(motivos: widget.resultado.motivos),
+                      ],
+
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+
+                      // Ingredientes
+                      _SeccionIngredientes(
+                        product: widget.product,
+                        tagsIncompatibles: widget.resultado.tagsIncompatibles,
+                      ),
+
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+
+                      // Tabla nutricional
+                      _TablaNutricional(nutriments: widget.product.nutriments),
+
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 12),
+
+                      // Sección de reporte — inline, sin showDialog
+                      if (_enviado)
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle_outline,
+                                  color: Color(0xFF4CAF50), size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                l10n.reportSuccess,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF388E3C),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (!_mostrandoFormulario)
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _abrirFormulario,
+                            icon: Icon(
+                              Icons.flag_outlined,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            label: Text(
+                              l10n.reportButton,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        _FormularioReporte(
+                          controller: _reportController,
+                          errorTexto: _reportError,
+                          enviando: _enviando,
+                          onChanged: (v) {
+                            if (_reportError != null) {
+                              setState(() => _reportError = null);
+                            }
+                          },
+                          onCancelar: _cancelarFormulario,
+                          onEnviar: _enviarReporte,
+                        ),
                     ],
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // Banner apto / no apto
-                  _BannerAptitud(resultado: resultado),
-
-                  if (!resultado.isApt) ...[
-                    const SizedBox(height: 16),
-                    _ListaMotivos(motivos: resultado.motivos),
-                  ],
-
-                  // ── Contenido expandido ──────────────────────────────────
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Ingredientes
-                  _SeccionIngredientes(
-                    product: product,
-                    tagsIncompatibles: resultado.tagsIncompatibles,
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Tabla nutricional
-                  _TablaNutricional(nutriments: product.nutriments),
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 12),
-
-                  // Botón de reporte de error
-                  _BotonReporte(barcode: product.barcode ?? ''),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
           ],
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Formulario de reporte inline
+// ---------------------------------------------------------------------------
+
+/// Formulario de reporte renderizado directamente en el bottom sheet.
+/// No usa showDialog ni ningún overlay, eliminando conflictos con el
+/// ciclo de vida de InheritedWidgets en rutas superpuestas.
+class _FormularioReporte extends StatelessWidget {
+  final TextEditingController controller;
+  final String? errorTexto;
+  final bool enviando;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onCancelar;
+  final VoidCallback onEnviar;
+
+  const _FormularioReporte({
+    required this.controller,
+    required this.errorTexto,
+    required this.enviando,
+    required this.onChanged,
+    required this.onCancelar,
+    required this.onEnviar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.reportDialogTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l10n.reportDialogDescription,
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: controller,
+          maxLines: 4,
+          maxLength: 300,
+          textCapitalization: TextCapitalization.sentences,
+          enabled: !enviando,
+          decoration: InputDecoration(
+            labelText: l10n.reportReasonLabel,
+            hintText: l10n.reportReasonHint,
+            errorText: errorTexto,
+            alignLabelWithHint: true,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: onChanged,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: enviando ? null : onCancelar,
+              child: Text(l10n.cancelButton),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: enviando ? null : onEnviar,
+              child: enviando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(l10n.sendButton),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -155,7 +357,6 @@ class _SeccionIngredientes extends StatelessWidget {
     required this.tagsIncompatibles,
   });
 
-  /// Comprueba si un texto de ingrediente contiene alguna keyword incompatible.
   bool _esIncompatible(String texto) {
     final lower = texto.toLowerCase();
     for (final tag in tagsIncompatibles) {
@@ -165,16 +366,11 @@ class _SeccionIngredientes extends StatelessWidget {
     return false;
   }
 
-  /// Construye un [TextSpan] con las keywords incompatibles resaltadas en rojo.
   TextSpan _buildTextoResaltado(String texto, Color onSurface) {
     if (tagsIncompatibles.isEmpty) {
-      return TextSpan(
-        text: texto,
-        style: TextStyle(fontSize: 13, color: onSurface),
-      );
+      return TextSpan(text: texto, style: TextStyle(fontSize: 13, color: onSurface));
     }
 
-    // Recopila todos los keywords incompatibles presentes en el texto
     final List<String> keywords = [];
     for (final tag in tagsIncompatibles) {
       for (final kw in _keywordsPorTag[tag] ?? []) {
@@ -183,13 +379,9 @@ class _SeccionIngredientes extends StatelessWidget {
     }
 
     if (keywords.isEmpty) {
-      return TextSpan(
-        text: texto,
-        style: TextStyle(fontSize: 13, color: onSurface),
-      );
+      return TextSpan(text: texto, style: TextStyle(fontSize: 13, color: onSurface));
     }
 
-    // Patrón que une todas las keywords con alternancia
     final pattern = RegExp(
       keywords.map(RegExp.escape).join('|'),
       caseSensitive: false,
@@ -248,8 +440,6 @@ class _SeccionIngredientes extends StatelessWidget {
             l10n.noDataAvailable,
             style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           )
-
-        // Lista estructurada (cada Ingredient como fila)
         else if (ingredientes != null && ingredientes.isNotEmpty)
           Wrap(
             spacing: 6,
@@ -298,8 +488,6 @@ class _SeccionIngredientes extends StatelessWidget {
               );
             }).toList(),
           )
-
-        // Fallback: texto plano con keywords resaltadas
         else if (textoPlano != null)
           RichText(
             text: _buildTextoResaltado(textoPlano, colorScheme.onSurface),
@@ -309,7 +497,8 @@ class _SeccionIngredientes extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Container(width: 12, height: 12,
+              Container(
+                width: 12, height: 12,
                 decoration: BoxDecoration(
                   color: const Color(0x1AE53935),
                   borderRadius: BorderRadius.circular(2),
@@ -317,7 +506,8 @@ class _SeccionIngredientes extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(l10n.productIncompatibleLabel, style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
+              Text(l10n.productIncompatibleLabel,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
               const SizedBox(width: 12),
               Container(
                 width: 12, height: 12,
@@ -328,7 +518,8 @@ class _SeccionIngredientes extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(l10n.productAllergenNotAffecting, style: const TextStyle(fontSize: 11, color: Color(0xFFE65100))),
+              Text(l10n.productAllergenNotAffecting,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFE65100))),
             ],
           ),
         ],
@@ -378,15 +569,11 @@ class _TablaNutricional extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.productNutritionTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        ),
+        Text(l10n.productNutritionTitle,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(
-          l10n.productNutritionPer100,
-          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
-        ),
+        Text(l10n.productNutritionPer100,
+            style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
@@ -409,8 +596,7 @@ class _TablaNutricional extends StatelessWidget {
                         : Radius.zero,
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -418,9 +604,7 @@ class _TablaNutricional extends StatelessWidget {
                       fila.nombre,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: fila.negrita
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight: fila.negrita ? FontWeight.w600 : FontWeight.normal,
                         color: colorScheme.onSurface,
                       ),
                     ),
@@ -428,9 +612,7 @@ class _TablaNutricional extends StatelessWidget {
                       fila.valor,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: fila.negrita
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight: fila.negrita ? FontWeight.w600 : FontWeight.normal,
                         color: fila.valor == '—'
                             ? colorScheme.onSurfaceVariant
                             : colorScheme.onSurface,
@@ -468,124 +650,6 @@ class _FilaNutriente {
   final String valor;
   final bool negrita;
   const _FilaNutriente(this.nombre, this.valor, {this.negrita = false});
-}
-
-// ---------------------------------------------------------------------------
-// Botón de reporte de error
-// ---------------------------------------------------------------------------
-
-/// Botón de texto que abre un diálogo para que el usuario reporte un error
-/// en el resultado de aptitud del producto.
-///
-/// El diálogo es completamente síncrono: devuelve el motivo introducido como
-/// String?. El envío a Firestore y el SnackBar ocurren DESPUÉS de que el
-/// diálogo esté completamente cerrado. El SnackBar se muestra a través de
-/// [scaffoldMessengerKey] (GlobalKey) para no llamar nunca a
-/// ScaffoldMessenger.of(context) desde código asíncrono.
-class _BotonReporte extends StatelessWidget {
-  final String barcode;
-  const _BotonReporte({required this.barcode});
-
-  Future<void> _abrirDialogo(BuildContext context, AppLocalizations l10n) async {
-    final controller = TextEditingController();
-
-    // El diálogo solo recoge el motivo. El botón Enviar es síncrono:
-    // devuelve el texto con Navigator.pop(razon) sin hacer ningún await.
-    final String? razon = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        String? errorTexto;
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            final colorScheme = Theme.of(ctx).colorScheme;
-            return AlertDialog(
-              title: Text(l10n.reportDialogTitle),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.reportDialogDescription,
-                    style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: controller,
-                    maxLines: 4,
-                    maxLength: 300,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: l10n.reportReasonLabel,
-                      hintText: l10n.reportReasonHint,
-                      errorText: errorTexto,
-                      alignLabelWithHint: true,
-                    ),
-                    onChanged: (_) {
-                      if (errorTexto != null) setDialogState(() => errorTexto = null);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(null),
-                  child: Text(l10n.cancelButton),
-                ),
-                FilledButton(
-                  // Handler síncrono: no hay await, no hay operaciones async aquí.
-                  onPressed: () {
-                    final texto = controller.text.trim();
-                    if (texto.isEmpty) {
-                      setDialogState(() => errorTexto = l10n.reportReasonEmpty);
-                      return;
-                    }
-                    Navigator.of(ctx).pop(texto);
-                  },
-                  child: Text(l10n.sendButton),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    controller.dispose();
-
-    // El diálogo ya está completamente cerrado y eliminado del árbol.
-    if (razon == null || razon.isEmpty) return;
-
-    // Usamos scaffoldMessengerKey.currentState en lugar de
-    // ScaffoldMessenger.of(context) para no registrar ninguna dependencia
-    // sobre InheritedWidgets desde código asíncrono.
-    try {
-      await ReportService.sendReport(barcode: barcode, reason: razon);
-      scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text(l10n.reportSuccess)),
-      );
-    } catch (_) {
-      scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text(l10n.reportError)),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Center(
-      child: TextButton.icon(
-        onPressed: () => _abrirDialogo(context, l10n),
-        icon: Icon(Icons.flag_outlined, size: 16, color: colorScheme.onSurfaceVariant),
-        label: Text(
-          l10n.reportButton,
-          style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
-        ),
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -653,13 +717,11 @@ class _DatosBasicos extends StatelessWidget {
         ),
         if (marca.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(marca,
-              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+          Text(marca, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
         ],
         if (cantidad.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text(cantidad,
-              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+          Text(cantidad, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
         ],
       ],
     );
@@ -700,8 +762,7 @@ class _BannerAptitud extends StatelessWidget {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color:
-                  isApt ? const Color(0xFF388E3C) : const Color(0xFFC62828),
+              color: isApt ? const Color(0xFF388E3C) : const Color(0xFFC62828),
             ),
           ),
         ],
