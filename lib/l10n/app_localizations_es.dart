@@ -283,6 +283,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get productIncompatibleProfile => 'Incompatible con tu perfil:';
 
   @override
+  String get productTracesTitle => 'Puede contener trazas de:';
+
+  @override
+  String get productTracesExplanation =>
+      'Presencia involuntaria por contacto durante la producción. Evalúa si aplica a tu caso.';
+
+  @override
+  String get productTracesIngredientLabel => 'Traza (puede afectarte)';
+
+  @override
   String get searchTitle => 'Buscar producto';
 
   @override

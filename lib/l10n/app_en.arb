@@ -107,6 +107,9 @@
   "productApt": "Suitable for you",
   "productNotApt": "Not suitable for you",
   "productIncompatibleProfile": "Incompatible with your profile:",
+  "productTracesTitle": "May contain traces of:",
+  "productTracesExplanation": "Unintentional presence due to contact during production. Assess whether this applies to you.",
+  "productTracesIngredientLabel": "Trace (may affect you)",
 
   "searchTitle": "Search product",
   "searchInstruction": "Enter the product barcode",

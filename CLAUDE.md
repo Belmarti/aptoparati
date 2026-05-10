@@ -15,7 +15,7 @@
 | Flutter SDK | ^3.10.7 | Framework principal |
 | firebase_core | ^4.4.0 | Inicialización Firebase |
 | firebase_auth | ^6.1.4 | Autenticación email/password + Google Sign-In |
-| cloud_firestore | ^6.1.2 | Base de datos usuarios y escaneos recientes |
+| cloud_firestore | ^6.1.2 | Base de datos usuarios, escaneos recientes y reportes |
 | mobile_scanner | ^7.1.4 | Escáner de códigos de barras/QR |
 | openfoodfacts | ^3.30.2 | API de productos alimenticios (OFF) |
 | google_sign_in | ^6.2.1 | Login con Google |
@@ -30,7 +30,7 @@
 - `themeEstandar`: color semilla verde (`#4CAF50`), fondo blanco, modo claro.
 - `themeBajaVision`: alto contraste negro/cian-menta (`#00FFBB`), fuentes ×1.5, botones ≥56dp, WCAG AA.
 
-**Localización:** Sistema i18n completo con `AppLocalizations`. Idiomas soportados: **español** (es), **inglés** (en), **francés** (fr). Archivos ARB en `lib/l10n/`.
+**Localización:** Sistema i18n completo con `AppLocalizations`. Idiomas soportados: **español** (es), **inglés** (en), **francés** (fr). Archivos ARB en `lib/l10n/`. Los archivos `.dart` se generan automáticamente con `flutter gen-l10n`; **nunca editar los `.dart` generados, solo los `.arb`**.
 
 ---
 
@@ -39,13 +39,17 @@
 ```
 aptoparati/
 ├── lib/
-│   ├── main.dart                        # Entry point: Firebase + Provider (ThemeService, LocaleService)
+│   ├── main.dart                        # Entry point: Firebase + Provider + scaffoldMessengerKey
+│   ├── app_globals.dart                 # GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey
 │   ├── firebase_options.dart            # Config Firebase (auto-generado por FlutterFire CLI)
 │   ├── l10n/
-│   │   ├── app_localizations.dart       # Clase base generada por flutter gen-l10n
-│   │   ├── app_localizations_es.dart    # Strings en español
-│   │   ├── app_localizations_en.dart    # Strings en inglés
-│   │   └── app_localizations_fr.dart    # Strings en francés
+│   │   ├── app_es.arb                   # Strings fuente en español  ← editar aquí
+│   │   ├── app_en.arb                   # Strings fuente en inglés   ← editar aquí
+│   │   ├── app_fr.arb                   # Strings fuente en francés  ← editar aquí
+│   │   ├── app_localizations.dart       # Clase base (auto-generada)
+│   │   ├── app_localizations_es.dart    # Implementación ES (auto-generada)
+│   │   ├── app_localizations_en.dart    # Implementación EN (auto-generada)
+│   │   └── app_localizations_fr.dart    # Implementación FR (auto-generada)
 │   ├── theme/
 │   │   └── app_themes.dart              # Definición de themeEstandar y themeBajaVision
 │   ├── data/
@@ -63,14 +67,15 @@ aptoparati/
 │   │   ├── user_service.dart            # Singleton caché de datos de usuario + saveRecentScan
 │   │   ├── theme_service.dart           # ChangeNotifier: modo baja visión (persistido en prefs)
 │   │   ├── locale_service.dart          # ChangeNotifier: idioma activo (persistido en prefs)
-│   │   └── aptitud_service.dart         # Lógica de evaluación producto vs. perfil de salud
+│   │   ├── aptitud_service.dart         # Lógica de evaluación producto vs. perfil de salud
+│   │   └── report_service.dart          # Envío de reportes de error a Firestore (colección reports/)
 │   └── widgets/
 │       ├── action_button.dart           # Botón principal con animaciones
 │       ├── custom_text_field.dart       # TextField con animación de foco
 │       ├── text_action_button.dart      # Botón de texto con hover
 │       ├── camera_viewfinder.dart       # Vista de cámara con mobile_scanner
 │       ├── dashboard_actions.dart       # Barra inferior: Buscar | Escanear | Historial
-│       └── product_result_card.dart     # Bottom sheet con resultado de aptitud del producto
+│       └── product_result_card.dart     # Bottom sheet resultado + formulario de reporte inline
 ├── assets/
 │   ├── icons/                           # SVGs (ej. ScanIcon.svg)
 │   └── images/
@@ -116,7 +121,8 @@ LoginScreen
 
 ## Modelo de Datos (Firestore)
 
-**Colección:** `users/` — documento identificado por el UID de Firebase Auth.
+### Colección `users/`
+Documento identificado por el UID de Firebase Auth.
 
 ```json
 {
@@ -157,6 +163,28 @@ LoginScreen
 
 `UserService.saveRecentScan()` mantiene el límite de 5: si el código ya existe actualiza la fecha; si no, añade y elimina los que superen 5 (batch delete).
 
+### Colección `reports/`
+Documentos creados por `ReportService.sendReport()` cuando el usuario reporta un resultado incorrecto.
+
+```json
+{
+  "user_id": "string (UID Firebase Auth)",
+  "email": "string",
+  "barcode": "string",
+  "product_name": "string (nombre del producto en OFF)",
+  "reason": "string (motivo introducido por el usuario, máx 300 chars)",
+  "created_at": "Timestamp (serverTimestamp)"
+}
+```
+
+**Regla de Firestore requerida:**
+```
+match /reports/{reportId} {
+  allow create: if request.auth != null
+                && request.auth.uid == request.resource.data.user_id;
+}
+```
+
 ### Mapeo de alérgenos (UI → backend)
 
 | Display (ES) | Backend key |
@@ -175,7 +203,7 @@ LoginScreen
 - **`provider`** para estado global reactivo. Dos `ChangeNotifier` registrados en `MultiProvider` en `main.dart`:
   - `ThemeService` — toggle modo baja visión, persiste en `SharedPreferences`.
   - `LocaleService` — idioma activo (es/en/fr), persiste en `SharedPreferences`.
-- `StatefulWidget` + `setState()` para estado local de pantallas.
+- `StatefulWidget` + `setState()` para estado local de pantallas y widgets complejos.
 - `UserService` (singleton) como caché de datos del usuario en memoria tras login:
   - `fetchUserData(uid)` — carga de Firestore al hacer login.
   - `updateHealthProfile(uid, data)` — actualiza Firestore y caché local.
@@ -218,13 +246,36 @@ Bottom sheet expandible (`DraggableScrollableSheet`, snaps a 36% / 93%) que mues
 - Lista de motivos de incompatibilidad (si no es apto).
 - Ingredientes con chips coloreados: rojo = incompatible con perfil, naranja = alérgeno genérico OFF, gris = normal. Fallback a texto plano con keywords resaltadas.
 - Tabla nutricional por 100g (energía, grasas, carbohidratos, azúcares, fibra, proteínas, sal).
+- **Formulario de reporte inline** (ver sección siguiente).
+
+Implementado como `StatefulWidget` (`_ProductResultSheet`) para gestionar el estado del formulario de reporte sin usar `showDialog`.
+
+### Formulario de reporte inline (`_FormularioReporte`)
+Componente dentro de `product_result_card.dart` que permite al usuario reportar un resultado incorrecto. Estados del ciclo:
+1. Botón "Reportar error" visible.
+2. Al pulsar → formulario de texto inline (TextField, máx 300 chars, botones Cancelar/Enviar).
+3. Al enviar → llama a `ReportService.sendReport()` → muestra confirmación verde inline (✓ + texto de éxito).
+
+**Decisión de diseño:** El formulario es inline (no `showDialog`) para evitar conflictos de lifecycle entre `InheritedWidget`s capturados por rutas modales superpuestas (`showModalBottomSheet` + `showDialog`), que causaban `_dependents.isEmpty` en `InheritedElement.deactivate()`.
+
+---
+
+## Infraestructura Global (`app_globals.dart`)
+
+```dart
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+```
+
+Pasado a `MaterialApp.scaffoldMessengerKey` en `main.dart`. Permite mostrar SnackBars desde código asíncrono sin hacer `ScaffoldMessenger.of(context)` fuera de `build()`, evitando registrar dependencias sobre `InheritedWidget`s desde callbacks async.
 
 ---
 
 ## Localización (i18n)
 
 - Generado con `flutter gen-l10n` (`generate: true` en pubspec).
-- Archivos fuente: `lib/l10n/app_localizations_*.dart` (ES/EN/FR).
+- **Archivos fuente a editar:** `lib/l10n/app_es.arb`, `app_en.arb`, `app_fr.arb`.
+- Los archivos `app_localizations*.dart` son auto-generados en cada build. **Nunca editarlos directamente.**
 - Acceso: `AppLocalizations.of(context)!` en cualquier widget dentro de `MaterialApp`.
 - `MaterialApp` recibe `locale` desde `LocaleService` vía `context.watch<LocaleService>()`.
 
@@ -240,6 +291,7 @@ Bottom sheet expandible (`DraggableScrollableSheet`, snaps a 36% / 93%) que mues
 - No hay separación repository/datasource — acceso directo a Firestore desde pantallas y servicios.
 - Textos de UI siempre a través de `AppLocalizations`, nunca strings hardcodeados.
 - Tamaños de fuente en widgets sensibles al tema de baja visión: usar `textTheme.xxx` del contexto en lugar de `fontSize` fijo (excepto elementos decorativos o dentro de `Row` con `Expanded` donde el tamaño fijo evita overflow).
+- **`InheritedWidget` en código async:** nunca llamar a `Theme.of()`, `AppLocalizations.of()` o `ScaffoldMessenger.of()` fuera de `build()`. Capturar los valores necesarios en `build()` y pasarlos como parámetros, o usar `scaffoldMessengerKey.currentState` para SnackBars.
 
 ---
 
@@ -248,11 +300,12 @@ Bottom sheet expandible (`DraggableScrollableSheet`, snaps a 36% / 93%) que mues
 | Funcionalidad | Estado | Notas |
 |---|---|---|
 | Recuperar contraseña | **Pendiente** | Link en LoginScreen sin lógica |
+| Distinción contiene vs. trazas en alérgenos | **Pendiente** | `AptitudService` combina `allergens.ids` y `tracesTags`; diferenciación aplazada |
 | Modelos de datos tipados (clases Dart) | **Pendiente** | Actualmente usa `Map<String, dynamic>` |
 | Separación lógica de negocio de la UI | **Pendiente** | Sin patrón Repository |
 | Tests (unitarios, widget, integración) | **Pendiente** | No hay ninguno |
 | CI/CD | **Pendiente** | No configurado |
-| Logging de errores | **Pendiente** | `print()` en UserService (sin servicio de logging) |
+| Logging de errores | **Pendiente** | `debugPrint()` puntual; sin servicio de logging centralizado |
 
 ---
 
@@ -260,7 +313,7 @@ Bottom sheet expandible (`DraggableScrollableSheet`, snaps a 36% / 93%) que mues
 
 - No hay patrón Repository.
 - No hay inyección de dependencias formal.
-- No hay logging de errores (solo `print()`).
+- No hay logging de errores centralizado.
 - No hay tests.
 - No hay CI/CD.
 - No hay tipado fuerte de modelos (clases Dart con fromMap/toMap).

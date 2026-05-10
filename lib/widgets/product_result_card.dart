@@ -175,6 +175,15 @@ class _ProductResultSheetState extends State<_ProductResultSheet> {
                         _ListaMotivos(motivos: widget.resultado.motivos),
                       ],
 
+                      // Advertencia de trazas (solo cuando el producto es apto pero hay trazas)
+                      if (widget.resultado.isApt &&
+                          widget.resultado.motivosTraza.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _AdvertenciaTrazas(
+                          motivosTraza: widget.resultado.motivosTraza,
+                        ),
+                      ],
+
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 16),
@@ -183,6 +192,7 @@ class _ProductResultSheetState extends State<_ProductResultSheet> {
                       _SeccionIngredientes(
                         product: widget.product,
                         tagsIncompatibles: widget.resultado.tagsIncompatibles,
+                        tagsTraza: widget.resultado.tagsTraza,
                       ),
 
                       const SizedBox(height: 24),
@@ -352,11 +362,16 @@ class _SeccionIngredientes extends StatelessWidget {
   final Product product;
   final Set<String> tagsIncompatibles;
 
+  /// Tags de alérgenos presentes solo como trazas (advertencia, no incompatibilidad).
+  final Set<String> tagsTraza;
+
   const _SeccionIngredientes({
     required this.product,
     required this.tagsIncompatibles,
+    required this.tagsTraza,
   });
 
+  /// Devuelve true si el ingrediente coincide con un tag de incompatibilidad directa.
   bool _esIncompatible(String texto) {
     final lower = texto.toLowerCase();
     for (final tag in tagsIncompatibles) {
@@ -366,24 +381,61 @@ class _SeccionIngredientes extends StatelessWidget {
     return false;
   }
 
+  /// Devuelve true si el ingrediente coincide con un tag de traza (y no es incompatible directo).
+  bool _esSoloTraza(String texto) {
+    final lower = texto.toLowerCase();
+    for (final tag in tagsTraza) {
+      final keywords = _keywordsPorTag[tag] ?? [];
+      if (keywords.any((k) => lower.contains(k))) return true;
+    }
+    return false;
+  }
+
+  /// Construye el texto plano con palabras resaltadas por prioridad:
+  /// rojo = incompatible directo, ámbar = solo traza.
   TextSpan _buildTextoResaltado(String texto, Color onSurface) {
-    if (tagsIncompatibles.isEmpty) {
+    final hayIncompatibles = tagsIncompatibles.isNotEmpty;
+    final hayTrazas = tagsTraza.isNotEmpty;
+
+    if (!hayIncompatibles && !hayTrazas) {
       return TextSpan(text: texto, style: TextStyle(fontSize: 13, color: onSurface));
     }
 
-    final List<String> keywords = [];
+    // Construir mapa keyword → estilo con prioridad: incompatible > traza
+    final Map<String, TextStyle> keywordEstilo = {};
+
+    for (final tag in tagsTraza) {
+      for (final kw in _keywordsPorTag[tag] ?? []) {
+        if (texto.toLowerCase().contains(kw)) {
+          keywordEstilo[kw] = const TextStyle(
+            fontSize: 13,
+            color: Color(0xFFF57C00),
+            fontWeight: FontWeight.bold,
+            backgroundColor: Color(0x1AFFB300),
+          );
+        }
+      }
+    }
+    // Los incompatibles directos sobreescriben en caso de colisión
     for (final tag in tagsIncompatibles) {
       for (final kw in _keywordsPorTag[tag] ?? []) {
-        if (texto.toLowerCase().contains(kw)) keywords.add(kw);
+        if (texto.toLowerCase().contains(kw)) {
+          keywordEstilo[kw] = const TextStyle(
+            fontSize: 13,
+            color: Color(0xFFC62828),
+            fontWeight: FontWeight.bold,
+            backgroundColor: Color(0x1AE53935),
+          );
+        }
       }
     }
 
-    if (keywords.isEmpty) {
+    if (keywordEstilo.isEmpty) {
       return TextSpan(text: texto, style: TextStyle(fontSize: 13, color: onSurface));
     }
 
     final pattern = RegExp(
-      keywords.map(RegExp.escape).join('|'),
+      keywordEstilo.keys.map(RegExp.escape).join('|'),
       caseSensitive: false,
     );
 
@@ -396,14 +448,11 @@ class _SeccionIngredientes extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: onSurface),
         ));
       }
+      final kwLower = match.group(0)!.toLowerCase();
       spans.add(TextSpan(
         text: match.group(0),
-        style: const TextStyle(
-          fontSize: 13,
-          color: Color(0xFFC62828),
-          fontWeight: FontWeight.bold,
-          backgroundColor: Color(0x1AE53935),
-        ),
+        style: keywordEstilo[kwLower] ??
+            TextStyle(fontSize: 13, color: onSurface),
       ));
       cursor = match.end;
     }
@@ -447,19 +496,32 @@ class _SeccionIngredientes extends StatelessWidget {
             children: ingredientes.map((ing) {
               final texto = ing.text ?? '';
               final incompatible = _esIncompatible(texto);
+              final soloTraza = !incompatible && _esSoloTraza(texto);
               final esAlergenoGeneral = ing.bold == true;
 
               Color bg;
               Color fg;
+              Color borderColor;
+
               if (incompatible) {
+                // Rojo: incompatibilidad directa con el perfil del usuario
                 bg = const Color(0x1AE53935);
                 fg = const Color(0xFFC62828);
+                borderColor = const Color(0x4DE53935);
+              } else if (soloTraza) {
+                // Ámbar: solo trazas, el producto sigue siendo apto
+                bg = const Color(0x1AFFB300);
+                fg = const Color(0xFFF57C00);
+                borderColor = const Color(0x4DFFB300);
               } else if (esAlergenoGeneral) {
+                // Naranja: alérgeno marcado por OFF que no afecta al usuario
                 bg = const Color(0x1AFF8F00);
                 fg = const Color(0xFFE65100);
+                borderColor = const Color(0x4DFF8F00);
               } else {
                 bg = colorScheme.surfaceContainerHighest;
                 fg = colorScheme.onSurface;
+                borderColor = colorScheme.outlineVariant;
               }
 
               return Container(
@@ -467,20 +529,14 @@ class _SeccionIngredientes extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: bg,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: incompatible
-                        ? const Color(0x4DE53935)
-                        : esAlergenoGeneral
-                            ? const Color(0x4DFF8F00)
-                            : colorScheme.outlineVariant,
-                  ),
+                  border: Border.all(color: borderColor),
                 ),
                 child: Text(
                   texto,
                   style: TextStyle(
                     fontSize: 12,
                     color: fg,
-                    fontWeight: (incompatible || esAlergenoGeneral)
+                    fontWeight: (incompatible || soloTraza || esAlergenoGeneral)
                         ? FontWeight.w600
                         : FontWeight.normal,
                   ),
@@ -493,37 +549,163 @@ class _SeccionIngredientes extends StatelessWidget {
             text: _buildTextoResaltado(textoPlano, colorScheme.onSurface),
           ),
 
-        if (!sinDatos && tagsIncompatibles.isNotEmpty) ...[
+        // Leyenda de colores (solo si hay algo que explicar)
+        if (!sinDatos &&
+            (tagsIncompatibles.isNotEmpty || tagsTraza.isNotEmpty)) ...[
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
             children: [
-              Container(
-                width: 12, height: 12,
-                decoration: BoxDecoration(
+              if (tagsIncompatibles.isNotEmpty)
+                _ItemLeyenda(
                   color: const Color(0x1AE53935),
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(color: const Color(0x4DE53935)),
+                  borderColor: const Color(0x4DE53935),
+                  textColor: const Color(0xFFC62828),
+                  label: l10n.productIncompatibleLabel,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(l10n.productIncompatibleLabel,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFFC62828))),
-              const SizedBox(width: 12),
-              Container(
-                width: 12, height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0x1AFF8F00),
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(color: const Color(0x4DFF8F00)),
+              if (tagsTraza.isNotEmpty)
+                _ItemLeyenda(
+                  color: const Color(0x1AFFB300),
+                  borderColor: const Color(0x4DFFB300),
+                  textColor: const Color(0xFFF57C00),
+                  label: l10n.productTracesIngredientLabel,
                 ),
+              _ItemLeyenda(
+                color: const Color(0x1AFF8F00),
+                borderColor: const Color(0x4DFF8F00),
+                textColor: const Color(0xFFE65100),
+                label: l10n.productAllergenNotAffecting,
               ),
-              const SizedBox(width: 6),
-              Text(l10n.productAllergenNotAffecting,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFFE65100))),
             ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Un ítem de la leyenda de colores de ingredientes.
+class _ItemLeyenda extends StatelessWidget {
+  final Color color;
+  final Color borderColor;
+  final Color textColor;
+  final String label;
+
+  const _ItemLeyenda({
+    required this.color,
+    required this.borderColor,
+    required this.textColor,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: borderColor),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 11, color: textColor)),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Advertencia de trazas
+// ---------------------------------------------------------------------------
+
+/// Tarjeta ámbar que aparece cuando el producto es apto pero contiene trazas
+/// de alérgenos del usuario. No bloquea el consumo; informa para que el
+/// usuario decida según la gravedad de su caso.
+class _AdvertenciaTrazas extends StatelessWidget {
+  final List<String> motivosTraza;
+
+  const _AdvertenciaTrazas({required this.motivosTraza});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cabecera con icono y título
+          Row(
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFF57C00),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.productTracesTitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE65100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Lista de alérgenos detectados como trazas
+          const SizedBox(height: 6),
+          ...motivosTraza.map(
+            (m) => Padding(
+              padding: const EdgeInsets.only(left: 28, top: 3),
+              child: Row(
+                children: [
+                  const Icon(Icons.circle, size: 5, color: Color(0xFFF57C00)),
+                  const SizedBox(width: 6),
+                  Text(
+                    m,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF7F4000),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Explicación breve
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 28),
+            child: Text(
+              l10n.productTracesExplanation,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF9E6B00),
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

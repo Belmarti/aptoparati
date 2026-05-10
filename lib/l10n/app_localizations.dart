@@ -616,6 +616,24 @@ abstract class AppLocalizations {
   /// **'Incompatible con tu perfil:'**
   String get productIncompatibleProfile;
 
+  /// No description provided for @productTracesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Puede contener trazas de:'**
+  String get productTracesTitle;
+
+  /// No description provided for @productTracesExplanation.
+  ///
+  /// In es, this message translates to:
+  /// **'Presencia involuntaria por contacto durante la producción. Evalúa si aplica a tu caso.'**
+  String get productTracesExplanation;
+
+  /// No description provided for @productTracesIngredientLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Traza (puede afectarte)'**
+  String get productTracesIngredientLabel;
+
   /// No description provided for @searchTitle.
   ///
   /// In es, this message translates to:

@@ -107,6 +107,9 @@
   "productApt": "Apto para ti",
   "productNotApt": "No apto para ti",
   "productIncompatibleProfile": "Incompatible con tu perfil:",
+  "productTracesTitle": "Puede contener trazas de:",
+  "productTracesExplanation": "Presencia involuntaria por contacto durante la producción. Evalúa si aplica a tu caso.",
+  "productTracesIngredientLabel": "Traza (puede afectarte)",
 
   "searchTitle": "Buscar producto",
   "searchInstruction": "Introduce el código de barras del producto",
