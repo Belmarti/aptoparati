@@ -10,6 +10,25 @@ class AppThemes {
   // Tema estándar (el original de la app)
   // ─────────────────────────────────────────────────────────────
   static ThemeData get themeEstandar {
+    // Escala ×1.25 sobre los tamaños por defecto de Material 3
+    const textTheme = TextTheme(
+      displayLarge:   TextStyle(fontSize: 57),
+      displayMedium:  TextStyle(fontSize: 45),
+      displaySmall:   TextStyle(fontSize: 36),
+      headlineLarge:  TextStyle(fontSize: 40),
+      headlineMedium: TextStyle(fontSize: 35),
+      headlineSmall:  TextStyle(fontSize: 30),
+      titleLarge:     TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
+      titleMedium:    TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+      titleSmall:     TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      bodyLarge:      TextStyle(fontSize: 20),
+      bodyMedium:     TextStyle(fontSize: 18),
+      bodySmall:      TextStyle(fontSize: 15),
+      labelLarge:     TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      labelMedium:    TextStyle(fontSize: 15),
+      labelSmall:     TextStyle(fontSize: 14),
+    );
+
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF4CAF50),
@@ -17,6 +36,7 @@ class AppThemes {
       ),
       useMaterial3: true,
       scaffoldBackgroundColor: Colors.white,
+      textTheme: textTheme,
     );
   }
 
